@@ -9,7 +9,7 @@ class PresensiModel extends Model
     protected $db, $builder;
     protected $table = 'presensi';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['id_pegawai', 'tanggal_masuk', 'jam_masuk', 'foto_masuk', 'tanggal_keluar', 'jam_keluar', 'foto_keluar'];
+    protected $allowedFields = ['id_pegawai', 'tanggal_masuk', 'jam_masuk', 'foto_masuk', 'tanggal_keluar', 'jam_keluar', 'foto_keluar', 'keterangan'];
     protected $useTimestamps = true;
 
     public function __construct()

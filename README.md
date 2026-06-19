@@ -406,3 +406,9 @@ Kontribusi untuk penyempurnaan aplikasi ini sangat dihargai. Jika Anda menemukan
 
 > Made by [Josephine](https://josephines1.github.io/).
 > Template by [tabler.io](tabler.io)
+
+
+<!-- Task -->
+1. Reset password
+2. Ubah size photo
+3. Insert query keterangan waktu checkout

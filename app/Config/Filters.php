@@ -40,7 +40,8 @@ class Filters extends BaseConfig
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
-            'login',
+            // Reset password publik dikecualikan dari wajib login
+            'login' => ['except' => ['reset-password', 'reset-password/*']],
         ],
         'after' => [
             'toolbar',

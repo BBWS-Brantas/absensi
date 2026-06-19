@@ -61,6 +61,7 @@
                                     <th>Foto Pulang</th>
                                     <th>Total Jam Kerja</th>
                                     <th>Total Keterlambatan</th>
+                                    <th>Keterangan Kegiatan</th>
                                 </tr>
                                 <?php if (!empty($data_presensi_pegawai)) : ?>
                                     <?php $nomor = 1 + ($perPage * ($currentPage - 1)); ?>
@@ -118,6 +119,7 @@
                                             <?php else : ?>
                                                 <td class="text-center"><?= $total_jam_keterlambatan_format ?></td>
                                             <?php endif; ?>
+                                            <td>#belum ada data#</td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else : ?>

@@ -61,6 +61,11 @@
                                 <a href="<?= base_url('/data-pegawai/edit/' . $pegawai->username) ?>" class="badge bg-warning">
                                     edit
                                 </a>
+                                <?php if (in_groups('admin')) : ?>
+                                    <a href="<?= base_url('/reset-password-pegawai/' . $pegawai->username) ?>" class="badge bg-info">
+                                        reset password
+                                    </a>
+                                <?php endif; ?>
                                 <a href="#" class="badge bg-danger btn-hapus" data-id="<?= $pegawai->id ?>" data-name="<?= $pegawai->nama ?>" data-bs-toggle="modal" data-bs-target="#modal-danger">
                                     hapus
                                 </a>

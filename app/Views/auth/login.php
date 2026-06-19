@@ -1,19 +1,15 @@
+<?php
+
+use PhpOffice\PhpSpreadsheet\Helper\Size;
+?>
 <!doctype html>
-<!--
-* Tabler - Premium and Open Source dashboard template with responsive and high quality UI.
-* @version 1.0.0-beta19
-* @link https://tabler.io
-* Copyright 2018-2023 The Tabler Authors
-* Copyright 2018-2023 codecalm.net Paweł Kuna
-* Licensed under MIT (https://github.com/tabler/tabler/blob/master/LICENSE)
--->
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Login | O-Present</title>
+    <title>BBWS | Present</title>
     <!-- CSS files -->
     <link href="<?= base_url('../assets/css/tabler.min.css?1684106062') ?>" rel="stylesheet" />
     <link href="<?= base_url('../assets/css/tabler-flags.min.css?1684106062') ?>" rel="stylesheet" />
@@ -42,8 +38,8 @@
         <div class="container container-tight py-4">
             <div class="text-center mb-4">
                 <a href="<?= base_url() ?>" class="navbar-brand navbar-brand-autodark align-items-center">
-                    <img src="<?= base_url('../assets/img/company/logo.png') ?>" height="36" alt="O-Present">
-                    <span>O-Present</span>
+                    <img src="<?= base_url('../assets/img/company/logo.png') ?>" height="75" alt="O-Present">
+                    <span><h1>BBWS Brantas Presensi</h1></span>
                 </a>
             </div>
             <div class="card card-md">
@@ -78,7 +74,7 @@
                                 <?= lang('Auth.password') ?>
                                 <?php if ($config->activeResetter) : ?>
                                     <span class="form-label-description">
-                                        <a href="<?= url_to('forgot') ?>"><?= lang('Auth.forgotYourPassword') ?></a>
+                                        <!-- <a href="<?= url_to('forgot') ?>"><?= lang('Auth.forgotYourPassword') ?></a> -->
                                     </span>
                                 <?php endif; ?>
                             </label>
@@ -104,6 +100,9 @@
                         </div>
                     </form>
                 </div>
+            </div>
+            <div class="text-center text-muted mt-3">
+                <a href="<?= site_url('reset-password') ?>">Reset Password</a>
             </div>
         </div>
     </div>

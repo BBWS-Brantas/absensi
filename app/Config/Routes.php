@@ -79,3 +79,11 @@ $routes->post('/send-email-token', 'UserProfile::emailToken');
 
 $routes->get('/change-email', 'UserProfile::changeEmail');
 $routes->post('/update-email', 'UserProfile::attemptChangeEmail');
+
+// Reset password sederhana (tanpa token/email) - publik, lihat exception filter 'login' di Config/Filters.php
+$routes->get('/reset-password', 'ResetPassword::index');
+$routes->post('/reset-password/update', 'ResetPassword::update');
+
+// Reset password pegawai oleh admin (dari tombol di daftar data pegawai), pegawai dipilih via username
+$routes->get('/reset-password-pegawai/(:segment)', 'ResetPasswordPegawai::index/$1', ['filter' => 'role:admin']);
+$routes->post('/reset-password-pegawai/(:segment)', 'ResetPasswordPegawai::update/$1', ['filter' => 'role:admin']);

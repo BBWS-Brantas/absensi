@@ -16,15 +16,17 @@
                 <div class="card text-center">
                     <div class="card-body m-auto">
                         <div id="my_result"></div>
-                        <div class="mt-3" id="my_camera"></div>
                         <div class="mt-3"><?= date('d F Y', strtotime($tanggal_masuk)) . ' - ' . $jam_masuk ?></div>
-                        <form action="<?= base_url('/presensi-masuk/simpan') ?>" method="post">
+                        <form action="<?= base_url('/presensi-masuk/simpan') ?>" method="post" enctype="multipart/form-data">
                             <?= csrf_field() ?>
                             <input type="hidden" name="username" value="<?= $user_profile->username ?>">
                             <input type="hidden" name="id_pegawai" value="<?= $user_profile->id_pegawai ?>">
                             <input type="hidden" name="tanggal_masuk" value="<?= $tanggal_masuk ?>">
                             <input type="hidden" name="jam_masuk" value="<?= $jam_masuk ?>">
-                            <input type="hidden" name="image-cam" class="image-tag">
+                            <div class="mt-3">
+                                <input type="file" name="foto" accept="image/jpeg,image/png" capture="environment" class="form-control" required>
+                                <small class="form-hint">Ambil foto dari kamera atau pilih dari galeri. Format JPG/JPEG/PNG, maksimal 15 MB.</small>
+                            </div>
                             <button class="btn btn-primary mt-3" type="submit" id="ambil-foto">Ambil Gambar</button>
                         </form>
                     </div>
@@ -35,26 +37,6 @@
 </div>
 
 <script language="JavaScript">
-    Webcam.set({
-        width: 320,
-        height: 240,
-        dest_width: 320,
-        dest_height: 240,
-        image_format: 'jpeg',
-        jpeg_quality: 90,
-        force_flash: false
-    });
-
-    Webcam.attach('#my_camera');
-
-    document.getElementById('ambil-foto').addEventListener('click', function() {
-        Webcam.snap(function(data_uri) {
-            $('.image-tag').val(data_uri);
-
-            document.getElementById('results').innerHTML = '<img src="' + data_uri + '"/>';
-        });
-    });
-
     let latitude_kantor = <?= $latitude_kantor ?>;
     let longitude_kantor = <?= $longitude_kantor ?>;
 

@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    container_name: o-present-app
+    restart: unless-stopped
+    ports:
+      # http://localhost:8080 -> php spark serve inside the container
+      - "8080:8080"
+    volumes:
+      # Live source mount (includes vendor/ and .env)
+      - ./:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: o-present-db
+    restart: unless-stopped
+    environment:
+      # App connects as root with an empty password (see .env -> database.default.password)
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      # Dump has no CREATE DATABASE, so create the (hyphenated) schema here
+      MYSQL_DATABASE: "o-present"
+    ports:
+      # Exposed on the host too, in case you want to connect with a GUI client
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      # Auto-imported on first start only (when db_data is empty)
+      - ../../o-present.sql:/docker-entrypoint-initdb.d/01-o-present.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:

@@ -25,6 +25,26 @@ class Presensi extends BaseController
         $this->pegawaiModel = new PegawaiModel();
     }
 
+    /**
+     * Aturan validasi foto presensi: wajib gambar asli (jpg/jpeg/png), maksimal 15 MB.
+     * max_size dalam KB -> 15360 KB = 15 MB.
+     */
+    private function aturanFoto(): array
+    {
+        return [
+            'foto' => [
+                'rules' => 'uploaded[foto]|is_image[foto]|mime_in[foto,image/jpg,image/jpeg,image/png]|ext_in[foto,jpg,jpeg,png]|max_size[foto,15360]',
+                'errors' => [
+                    'uploaded' => 'Mohon ambil atau pilih foto presensi.',
+                    'is_image' => 'File yang diunggah harus berupa gambar.',
+                    'mime_in'  => 'Format foto harus JPG, JPEG, atau PNG.',
+                    'ext_in'   => 'Ekstensi foto harus jpg, jpeg, atau png.',
+                    'max_size' => 'Ukuran foto maksimal 15 MB.',
+                ],
+            ],
+        ];
+    }
+
     public function presensiMasuk()
     {
         $user_profile = $this->usersModel->getUserInfo(user_id());
@@ -87,15 +107,20 @@ class Presensi extends BaseController
 
     public function simpanPresensiMasuk()
     {
-        $foto = $this->request->getPost('image-cam');
-        $foto = str_replace('data:image/jpeg;base64,', '', $foto);
-        $foto = base64_decode($foto, true);
+        // Validasi: harus benar-benar gambar (jpg/jpeg/png), maksimal 15 MB
+        if (! $this->validate($this->aturanFoto())) {
+            session()->setFlashdata('gagal', implode(' ', $this->validator->getErrors()));
+            return redirect()->to(base_url());
+        }
+
+        $foto = $this->request->getFile('foto');
 
         $username = $this->request->getPost('username');
-        $nama_foto = 'masuk-' . date('Y-m-d-H-i-s') . '-' . $username . '.png';
-        $file_path = FCPATH . 'assets/img/foto_presensi/masuk/' . $nama_foto;
+        $nama_foto = 'masuk-' . date('Y-m-d-H-i-s') . '-' . $username . '.' . $foto->getExtension();
 
-        if (!file_put_contents($file_path, $foto)) {
+        $foto->move(FCPATH . 'assets/img/foto_presensi/masuk/', $nama_foto);
+
+        if (! $foto->hasMoved()) {
             session()->setFlashdata('gagal', 'Gagal menyimpan foto presensi masuk');
             return redirect()->to(base_url());
         }
@@ -173,15 +198,20 @@ class Presensi extends BaseController
 
     public function simpanPresensiKeluar()
     {
-        $foto = $this->request->getPost('image-cam');
-        $foto = str_replace('data:image/jpeg;base64,', '', $foto);
-        $foto = base64_decode($foto, true);
+        // Validasi: harus benar-benar gambar (jpg/jpeg/png), maksimal 15 MB
+        if (! $this->validate($this->aturanFoto())) {
+            session()->setFlashdata('gagal', implode(' ', $this->validator->getErrors()));
+            return redirect()->to(base_url());
+        }
+
+        $foto = $this->request->getFile('foto');
 
         $username = $this->request->getPost('username');
-        $nama_foto = 'keluar-' . date('Y-m-d-H-i-s') . '-' . $username . '.png';
-        $file_path = FCPATH . 'assets/img/foto_presensi/keluar/' . $nama_foto;
+        $nama_foto = 'keluar-' . date('Y-m-d-H-i-s') . '-' . $username . '.' . $foto->getExtension();
 
-        if (!file_put_contents($file_path, $foto)) {
+        $foto->move(FCPATH . 'assets/img/foto_presensi/keluar/', $nama_foto);
+
+        if (! $foto->hasMoved()) {
             session()->setFlashdata('gagal', 'Gagal menyimpan foto presensi keluar');
             return redirect()->to(base_url());
         }
@@ -189,12 +219,14 @@ class Presensi extends BaseController
         $id_presensi = $this->request->getPost('id_presensi');
         $tanggal_keluar = $this->request->getPost('tanggal_keluar');
         $jam_keluar = $this->request->getPost('jam_keluar');
+        $keterangan = $this->request->getPost('keterangan');
 
         $this->presensiModel->save([
             'id' => $id_presensi,
             'tanggal_keluar' =>  $tanggal_keluar,
             'jam_keluar' => $jam_keluar,
             'foto_keluar' => $nama_foto,
+            'keterangan' => $keterangan,
         ]);
 
         session()->setFlashdata('berhasil', 'Presensi keluar berhasil disimpan');
