@@ -38,7 +38,7 @@
                                 <path d="M8 15h8" />
                                 <path d="M11 11v7" />
                             </svg>
-                            Export Excel
+                            Export
                         </button>
                     </div>
                 </div>
@@ -162,7 +162,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success" data-bs-dismiss="modal">Export</button>
+                    <button type="submit" class="btn btn-success" data-bs-dismiss="modal">Export Excel</button>
+                    <button type="submit" class="btn btn-danger" formaction="<?= base_url('/rekap-presensi/pdf') ?>" data-bs-dismiss="modal">Export PDF</button>
                 </div>
             </form>
         </div>

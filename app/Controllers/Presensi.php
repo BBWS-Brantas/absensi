@@ -431,6 +431,92 @@ class Presensi extends BaseController
         exit();
     }
 
+    public function rekapPresensiPegawaiPdf()
+    {
+        $data_pegawai = $this->pegawaiModel->getPegawai(user()->username)['pegawai'];
+
+        $tanggal_awal = $this->request->getPost('tanggal_awal');
+        $tanggal_akhir = $this->request->getPost('tanggal_akhir');
+        if ($tanggal_awal === '') {
+            $tanggal_awal = $this->presensiModel->getMinDate($data_pegawai->id);
+        }
+        if ($tanggal_akhir === '') {
+            $tanggal_akhir = date('Y-m-d');
+        }
+
+        $data_presensi = $this->presensiModel->getDataPresensi($data_pegawai->id_pegawai, $tanggal_awal, $tanggal_akhir, true)['rekap-presensi'];
+
+        $rows = [];
+        $nomor = 1;
+        foreach ($data_presensi as $data) {
+            $belum_keluar = ($data->tanggal_keluar === '0000-00-00' || $data->jam_keluar === '00:00:00');
+
+            // Total jam kerja
+            if ($belum_keluar) {
+                $total_jam_kerja_format = '0 Jam 0 Menit';
+            } else {
+                $selisih = strtotime($data->tanggal_keluar . ' ' . $data->jam_keluar) - strtotime($data->tanggal_masuk . ' ' . $data->jam_masuk);
+                $total_jam_kerja_format = ($selisih < 0)
+                    ? '0 Jam 0 Menit'
+                    : sprintf('%d Jam %d Menit', floor($selisih / 3600), floor(($selisih % 3600) / 60));
+            }
+
+            // Total keterlambatan
+            $terlambat = strtotime(date('H:i:s', strtotime($data->jam_masuk))) - strtotime($data->jam_masuk_kantor);
+            $total_keterlambatan_format = ($terlambat <= 0)
+                ? 'On Time'
+                : sprintf('%d Jam %d Menit', floor($terlambat / 3600), floor(($terlambat % 3600) / 60));
+
+            $rows[] = [
+                'no'                  => $nomor++,
+                'tanggal'             => date('d F Y', strtotime($data->tanggal_masuk)),
+                'jam_masuk'           => $data->jam_masuk,
+                'jam_keluar'          => $belum_keluar ? '-' : $data->jam_keluar,
+                'total_jam_kerja'     => $total_jam_kerja_format,
+                'total_keterlambatan' => $total_keterlambatan_format,
+                'keterangan'          => ! empty($data->keterangan) ? $data->keterangan : '-',
+                'foto_masuk'          => $this->fotoDataUri('masuk', $data->foto_masuk),
+                'foto_keluar'         => $belum_keluar ? null : $this->fotoDataUri('keluar', $data->foto_keluar),
+            ];
+        }
+
+        $html = view('presensi/rekap_pdf', [
+            'data_pegawai'  => $data_pegawai,
+            'tanggal_awal'  => $tanggal_awal,
+            'tanggal_akhir' => $tanggal_akhir,
+            'rows'          => $rows,
+        ]);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $namaFile = 'O-Present_Rekap Presensi_' . $data_pegawai->nama . '_'
+            . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir)) . '.pdf';
+        $dompdf->stream($namaFile, ['Attachment' => true]);
+        exit();
+    }
+
+    /**
+     * Membaca file foto presensi dan mengubahnya menjadi data URI base64
+     * agar bisa ditanam langsung di PDF (dompdf). Mengembalikan null bila file tidak ada.
+     */
+    private function fotoDataUri($jenis, $namafile)
+    {
+        if (empty($namafile) || $namafile === '-') {
+            return null;
+        }
+
+        $path = FCPATH . 'assets/img/foto_presensi/' . $jenis . '/' . $namafile;
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $mime = function_exists('mime_content_type') ? (mime_content_type($path) ?: 'image/jpeg') : 'image/jpeg';
+        return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+    }
+
     public function laporanHarian()
     {
         $currentPage = $this->request->getVar('page_harian') ? $this->request->getVar('page_harian') : 1;
