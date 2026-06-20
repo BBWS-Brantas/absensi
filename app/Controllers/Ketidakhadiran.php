@@ -247,7 +247,7 @@ class Ketidakhadiran extends BaseController
         $worksheet->getColumnDimension('G')->setWidth(250, 'px');
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="O-Present_Data Ketidakhadiran_' . $user_profile->username . '_' . $nama_bulan . '_' . $filter['tahun'] . '.xlsx"');
+        header('Content-Disposition: attachment;filename="Data Ketidakhadiran_' . $user_profile->username . '_' . $nama_bulan . '_' . $filter['tahun'] . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
@@ -758,7 +758,7 @@ class Ketidakhadiran extends BaseController
         $worksheet->getColumnDimension('I')->setWidth(250, 'px');
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="O-Present_Laporan Ketidakhadiran_' . $nama_bulan . '_' . $filter['tahun'] . '.xlsx"');
+        header('Content-Disposition: attachment;filename="Laporan Ketidakhadiran_' . $nama_bulan . '_' . $filter['tahun'] . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');

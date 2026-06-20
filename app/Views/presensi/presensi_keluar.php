@@ -30,10 +30,16 @@
                             <input type="hidden" name="tanggal_keluar" value="<?= $tanggal_keluar ?>">
                             <input type="hidden" name="jam_keluar" value="<?= $jam_keluar ?>">
                             <div class="mt-3">
-                                <input type="file" name="foto" accept="image/jpeg,image/png" capture="environment" class="form-control" required>
-                                <small class="form-hint">Ambil foto dari kamera atau pilih dari galeri. Format JPG/JPEG/PNG, maksimal 15 MB.</small>
+                                <video id="camera" autoplay playsinline class="w-100" style="border-radius:4px; background:#000;"></video>
+                                <canvas id="canvas" class="d-none"></canvas>
+                                <img id="preview" class="d-none w-100" style="border-radius:4px;" alt="Hasil foto presensi">
+                                <input type="file" name="foto" id="foto" accept="image/jpeg,image/png" class="d-none">
+                                <small class="form-hint" id="camera-hint">Foto hanya dapat diambil langsung dari kamera. Posisikan diri Anda, lalu tekan "Ambil Foto".</small>
+                                <div id="camera-error" class="text-danger mt-2 d-none"></div>
                             </div>
-                            <button class="btn btn-primary mt-3" type="submit" id="ambil-foto">Ambil Gambar</button>
+                            <button class="btn btn-secondary mt-3" type="button" id="capture-btn">Ambil Foto</button>
+                            <button class="btn btn-secondary mt-3 d-none" type="button" id="retake-btn">Ulangi</button>
+                            <button class="btn btn-primary mt-3 d-none" type="submit" id="submit-btn">Simpan Presensi</button>
                         </form>
                     </div>
                 </div>
@@ -43,6 +49,66 @@
 </div>
 
 <script language="JavaScript">
+    // Ambil foto presensi langsung dari kamera (tidak dapat memilih file dari galeri/drive)
+    (function () {
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const preview = document.getElementById('preview');
+        const fotoInput = document.getElementById('foto');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const errorBox = document.getElementById('camera-error');
+        let stream = null;
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                video.srcObject = stream;
+                video.classList.remove('d-none');
+                captureBtn.classList.remove('d-none');
+                errorBox.classList.add('d-none');
+            } catch (err) {
+                errorBox.textContent = 'Tidak dapat mengakses kamera: ' + err.message + '. Pastikan izin kamera diberikan dan halaman dibuka melalui HTTPS (atau localhost).';
+                errorBox.classList.remove('d-none');
+                captureBtn.classList.add('d-none');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        }
+
+        captureBtn.addEventListener('click', function () {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(function (blob) {
+                const file = new File([blob], 'presensi.jpg', { type: 'image/jpeg' });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fotoInput.files = dt.files;
+                preview.src = URL.createObjectURL(blob);
+                preview.classList.remove('d-none');
+                video.classList.add('d-none');
+                captureBtn.classList.add('d-none');
+                retakeBtn.classList.remove('d-none');
+                submitBtn.classList.remove('d-none');
+                stopCamera();
+            }, 'image/jpeg', 0.9);
+        });
+
+        retakeBtn.addEventListener('click', function () {
+            preview.classList.add('d-none');
+            retakeBtn.classList.add('d-none');
+            submitBtn.classList.add('d-none');
+            fotoInput.value = '';
+            startCamera();
+        });
+
+        startCamera();
+    })();
+
     let latitude_kantor = <?= $latitude_kantor ?>;
     let longitude_kantor = <?= $longitude_kantor ?>;
 

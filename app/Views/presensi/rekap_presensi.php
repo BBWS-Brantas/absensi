@@ -29,17 +29,33 @@
                         </form>
                     </div>
                     <div class="col-md-6 text-start text-lg-end">
-                        <button type="button" class="btn btn-green" data-bs-toggle="modal" data-bs-target="#exportModal">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-spreadsheet" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
-                                <path d="M8 11h8v7h-8z" />
-                                <path d="M8 15h8" />
-                                <path d="M11 11v7" />
-                            </svg>
-                            Export
-                        </button>
+                        <form id="exportForm" method="POST" action="<?= base_url('/rekap-presensi/excel') ?>" class="d-inline">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="tanggal_awal" value="<?= $tanggal_dari ?>">
+                            <input type="hidden" name="tanggal_akhir" value="<?= $tanggal_sampai ?>">
+                            <button type="submit" class="btn btn-green">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-spreadsheet" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+                                    <path d="M8 11h8v7h-8z" />
+                                    <path d="M8 15h8" />
+                                    <path d="M11 11v7" />
+                                </svg>
+                                Export Excel
+                            </button>
+                            <button type="submit" class="btn btn-danger" formaction="<?= base_url('/rekap-presensi/pdf') ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-text" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+                                    <path d="M9 9l1 0" />
+                                    <path d="M9 13l6 0" />
+                                    <path d="M9 17l6 0" />
+                                </svg>
+                                Export PDF
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -54,6 +70,8 @@
                             <table class="table table-bordered">
                                 <tr class="text-center">
                                     <th>No</th>
+                                    <th>ID TPM</th>
+                                    <th>Nama TPM</th>
                                     <th>Tanggal</th>
                                     <th>Jam Masuk</th>
                                     <th>Foto Masuk</th>
@@ -100,6 +118,8 @@
 
                                         <tr>
                                             <td class="text-center"><?= $nomor++ ?></td>
+                                            <td class="text-center"><?= $data_presensi->nip ?></td>
+                                            <td><?= $data_presensi->nama ?></td>
                                             <td class="text-center"><?= date('d F Y', strtotime($data_presensi->tanggal_masuk)) ?></td>
                                             <td class="text-center"><?= $data_presensi->jam_masuk ?></td>
                                             <td class="text-center"><a href="<?= base_url('assets/img/foto_presensi/masuk/' . $data_presensi->foto_masuk) ?>" target="_blank">Lihat Foto</a></td>
@@ -119,12 +139,12 @@
                                             <?php else : ?>
                                                 <td class="text-center"><?= $total_jam_keterlambatan_format ?></td>
                                             <?php endif; ?>
-                                            <td>#belum ada data#</td>
+                                            <td><?= !empty($data_presensi->keterangan) && $data_presensi->keterangan !== '-' ? esc($data_presensi->keterangan) : '-' ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else : ?>
                                     <tr class="text-center">
-                                        <td colspan="8">Belum ada data presensi.</td>
+                                        <td colspan="11">Belum ada data presensi.</td>
                                     </tr>
                                 <?php endif; ?>
                             </table>
@@ -140,33 +160,11 @@
     </div>
 </div>
 
-<!-- Export Excel Modals -->
-<div class="modal" id="exportModal" tabindex="-1">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Export Rekap Presensi Pegawai</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="<?= base_url('/rekap-presensi/excel') ?>" method="POST">
-                <?= csrf_field() ?>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="tanggal_awal">Tanggal Awal</label>
-                        <input class="form-control mt-1" type="date" id="tanggal_awal" name="tanggal_awal" value="<?= $tanggal_dari ?>">
-                    </div>
-                    <div class="mb-3">
-                        <label for="tanggal_akhir">Tanggal Akhir</label>
-                        <input class="form-control mt-1" type="date" id="tanggal_akhir" name="tanggal_akhir" value="<?= $tanggal_sampai ?>">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success" data-bs-dismiss="modal">Export Excel</button>
-                    <button type="submit" class="btn btn-danger" formaction="<?= base_url('/rekap-presensi/pdf') ?>" data-bs-dismiss="modal">Export PDF</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<script>
+    // Sinkronkan rentang tanggal dari filter halaman ke form export saat diekspor
+    document.getElementById('exportForm').addEventListener('submit', function() {
+        this.querySelector('[name="tanggal_awal"]').value = document.getElementById('tanggal_dari').value;
+        this.querySelector('[name="tanggal_akhir"]').value = document.getElementById('tanggal_sampai').value;
+    });
+</script>
 <?= $this->endSection() ?>

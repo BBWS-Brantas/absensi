@@ -167,7 +167,7 @@ class LokasiPresensi extends BaseController
         $worksheet->getColumnDimension('C')->setWidth(150, 'px');
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="O-Present_Data Lokasi Presensi_' . date('Y-m-d-His') . '.xlsx"');
+        header('Content-Disposition: attachment;filename="Data Lokasi Presensi_' . date('Y-m-d-His') . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');

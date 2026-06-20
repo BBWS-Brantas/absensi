@@ -422,7 +422,7 @@ class Presensi extends BaseController
 
         // redirect output to client browser
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="O-Present_Rekap Presensi Pegawai_' . $data_pegawai->nama . '_' . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir)) . '.xlsx"');
+        header('Content-Disposition: attachment;filename="Rekap Presensi Pegawai_' . $data_pegawai->nama . '_' . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir)) . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
@@ -492,7 +492,7 @@ class Presensi extends BaseController
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
-        $namaFile = 'O-Present_Rekap Presensi_' . $data_pegawai->nama . '_'
+        $namaFile = 'Rekap Presensi_' . $data_pegawai->nama . '_'
             . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir)) . '.pdf';
         $dompdf->stream($namaFile, ['Attachment' => true]);
         exit();
@@ -517,41 +517,123 @@ class Presensi extends BaseController
         return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
     }
 
+    /**
+     * Menyusun baris data presensi (termasuk foto sebagai data URI) untuk laporan PDF.
+     */
+    private function buildLaporanRows($data_presensi)
+    {
+        $rows = [];
+        $nomor = 1;
+        foreach ($data_presensi as $data) {
+            $belum_keluar = ($data->tanggal_keluar === '0000-00-00' || $data->jam_keluar === '00:00:00');
+
+            // Total jam kerja
+            if ($belum_keluar) {
+                $total_jam_kerja_format = '0 Jam 0 Menit';
+            } else {
+                $selisih = strtotime($data->tanggal_keluar . ' ' . $data->jam_keluar) - strtotime($data->tanggal_masuk . ' ' . $data->jam_masuk);
+                $total_jam_kerja_format = ($selisih < 0)
+                    ? '0 Jam 0 Menit'
+                    : sprintf('%d Jam %d Menit', floor($selisih / 3600), floor(($selisih % 3600) / 60));
+            }
+
+            // Total keterlambatan
+            $terlambat = strtotime(date('H:i:s', strtotime($data->jam_masuk))) - strtotime($data->jam_masuk_kantor);
+            $total_keterlambatan_format = ($terlambat <= 0)
+                ? 'On Time'
+                : sprintf('%d Jam %d Menit', floor($terlambat / 3600), floor(($terlambat % 3600) / 60));
+
+            $rows[] = [
+                'no'                  => $nomor++,
+                'nip'                 => $data->nip,
+                'nama'                => $data->nama,
+                'tanggal'             => date('d F Y', strtotime($data->tanggal_masuk)),
+                'jam_masuk'           => $data->jam_masuk,
+                'jam_keluar'          => $belum_keluar ? '-' : $data->jam_keluar,
+                'total_jam_kerja'     => $total_jam_kerja_format,
+                'total_keterlambatan' => $total_keterlambatan_format,
+                'keterangan'          => (! empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-',
+                'foto_masuk'          => $this->fotoDataUri('masuk', $data->foto_masuk),
+                'foto_keluar'         => $belum_keluar ? null : $this->fotoDataUri('keluar', $data->foto_keluar),
+            ];
+        }
+
+        return $rows;
+    }
+
+    public function laporanHarianPdf()
+    {
+        $tanggal = $this->request->getPost('tanggal');
+        if (empty($tanggal)) {
+            $tanggal = date('Y-m-d');
+        }
+
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true)['laporan-harian'];
+
+        $html = view('presensi/laporan_pdf', [
+            'judul' => 'Laporan Presensi Harian',
+            'meta'  => [
+                'Tanggal' => date('d F Y', strtotime($tanggal)),
+            ],
+            'rows'  => $this->buildLaporanRows($data_presensi),
+        ]);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $namaFile = 'Laporan Presensi Harian_' . date('Y-m-d', strtotime($tanggal)) . '.pdf';
+        $dompdf->stream($namaFile, ['Attachment' => true]);
+        exit();
+    }
+
+    public function laporanBulananPdf()
+    {
+        $filter_bulan = $this->request->getPost('filter_bulan');
+        $filter_tahun = $this->request->getPost('filter_tahun');
+        if ($filter_tahun === '' || $filter_tahun === null) {
+            $filter_tahun = date('Y');
+        }
+        if ($filter_bulan === '' || $filter_bulan === null) {
+            $filter_bulan = date('m');
+        }
+
+        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true)['laporan-bulanan'];
+
+        $html = view('presensi/laporan_pdf', [
+            'judul' => 'Laporan Presensi Bulanan',
+            'meta'  => [
+                'Bulan' => date('F', mktime(0, 0, 0, (int) $filter_bulan, 1)),
+                'Tahun' => $filter_tahun,
+            ],
+            'rows'  => $this->buildLaporanRows($data_presensi),
+        ]);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $namaFile = 'Laporan Presensi Bulanan_'
+            . date('F-Y', mktime(0, 0, 0, (int) $filter_bulan, 1, (int) $filter_tahun)) . '.pdf';
+        $dompdf->stream($namaFile, ['Attachment' => true]);
+        exit();
+    }
+
     public function laporanHarian()
     {
         $currentPage = $this->request->getVar('page_harian') ? $this->request->getVar('page_harian') : 1;
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
-        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian();
 
-        $tanggal_dari = $this->request->getGet('tanggal_dari');
-        $tanggal_sampai = $this->request->getGet('tanggal_sampai');
-        if (!empty($tanggal_dari) || !empty($tanggal_sampai)) {
-            if ($tanggal_dari === '') {
-                $tanggal_dari = date('Y-m-d');
-            }
-            if ($tanggal_sampai === '') {
-                $tanggal_sampai = date('Y-m-d');
-            }
-            $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal_dari, $tanggal_sampai);
+        $tanggal = $this->request->getGet('tanggal');
+        if (empty($tanggal)) {
+            $tanggal = date('Y-m-d');
         }
 
-        if (empty($tanggal_dari) || empty($tanggal_sampai)) {
-            $data_tanggal = date('d F Y');
-        } else {
-            if ($tanggal_sampai < $tanggal_dari) {
-                $tanggal_sampai = $tanggal_dari;
-            }
-            $data_tanggal = date('d F Y', strtotime($tanggal_dari)) . ' - ' . date('d F Y', strtotime($tanggal_sampai));
-        }
-
-        if (empty($tanggal_dari)) {
-            $tanggal_dari = date('Y-m-d');
-        }
-
-        if (empty($tanggal_sampai)) {
-            $tanggal_sampai = date('Y-m-d');
-        }
+        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal);
+        $data_tanggal = date('d F Y', strtotime($tanggal));
 
         $data_presensi = $data_presensi_pegawai['laporan-harian'];
         $pager = $data_presensi_pegawai['links'];
@@ -567,8 +649,7 @@ class Presensi extends BaseController
             'pager' => $pager,
             'total' => $total,
             'perPage' => $perPage,
-            'tanggal_dari' => $tanggal_dari,
-            'tanggal_sampai' => $tanggal_sampai,
+            'tanggal' => $tanggal,
         ];
 
         return view('presensi/laporan_presensi_harian', $data);
@@ -576,24 +657,18 @@ class Presensi extends BaseController
 
     public function laporanHarianExcel()
     {
-        $tanggal_awal = $this->request->getPOST('tanggal_awal');
-        $tanggal_akhir = $this->request->getPOST('tanggal_akhir');
-        if ($tanggal_awal === '') {
-            $tanggal_awal = date('Y-m-d');
+        $tanggal = $this->request->getPOST('tanggal');
+        if (empty($tanggal)) {
+            $tanggal = date('Y-m-d');
         }
-        if ($tanggal_akhir === '') {
-            $tanggal_akhir = date('Y-m-d');
-        }
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal_awal, $tanggal_akhir, true)['laporan-harian'];
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true)['laporan-harian'];
 
         $spreadsheet = new Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
 
         $worksheet->setCellValue('A1', 'Laporan Presensi Harian');
-        $worksheet->setCellValue('A3', 'Tanggal Awal');
-        $worksheet->setCellValue('A4', 'Tanggal Akhir');
-        $worksheet->setCellValue('C3', $tanggal_awal);
-        $worksheet->setCellValue('C4', $tanggal_akhir);
+        $worksheet->setCellValue('A3', 'Tanggal');
+        $worksheet->setCellValue('C3', $tanggal);
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NIP');
         $worksheet->setCellValue('C6', 'NAMA PEGAWAI');
@@ -689,7 +764,7 @@ class Presensi extends BaseController
         $worksheet->getColumnDimension('G')->setAutoSize(true);
         $worksheet->getColumnDimension('H')->setAutoSize(true);
 
-        $worksheet->getStyle('A3:C4')->applyFromArray($styleArray);
+        $worksheet->getStyle('A3:C3')->applyFromArray($styleArray);
         $worksheet->getStyle('A6:H6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
@@ -697,11 +772,10 @@ class Presensi extends BaseController
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setARGB('ffff00');
         $worksheet->getStyle('C3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-        $worksheet->getStyle('C4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
 
         // redirect output to client browser
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="O-Present_Laporan Presensi Harian_' . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir)) . '.xlsx"');
+        header('Content-Disposition: attachment;filename="Laporan Presensi Harian_' . date('Y-m-d', strtotime($tanggal)) . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
@@ -897,7 +971,7 @@ class Presensi extends BaseController
         $nama_bulan = $dateTime->format('F');
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="O-Present_Laporan Presensi Bulanan_' . $nama_bulan . '_' . $filter_tahun . '.xlsx"');
+        header('Content-Disposition: attachment;filename="Laporan Presensi Bulanan_' . $nama_bulan . '_' . $filter_tahun . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');

@@ -52,6 +52,8 @@ $routes->get('/laporan-presensi-harian', 'Presensi::laporanHarian', ['filter' =>
 $routes->get('/laporan-presensi-bulanan', 'Presensi::laporanBulanan', ['filter' => 'role:admin,head']);
 $routes->post('/laporan-presensi-harian/excel', 'Presensi::laporanHarianExcel', ['filter' => 'role:admin,head']);
 $routes->post('/laporan-presensi-bulanan/excel', 'Presensi::laporanBulananExcel', ['filter' => 'role:admin,head']);
+$routes->post('/laporan-presensi-harian/pdf', 'Presensi::laporanHarianPdf', ['filter' => 'role:admin,head']);
+$routes->post('/laporan-presensi-bulanan/pdf', 'Presensi::laporanBulananPdf', ['filter' => 'role:admin,head']);
 $routes->post('/rekap-presensi/excel', 'Presensi::rekapPresensiPegawaiExcel', ['filter' => 'role:admin,pegawai']);
 $routes->post('/rekap-presensi/pdf', 'Presensi::rekapPresensiPegawaiPdf', ['filter' => 'role:admin,pegawai']);
 
