@@ -313,7 +313,7 @@ class Pegawai extends BaseController
             'nama' => [
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'Mohon isi nama pegawai',
+                    'required' => 'Mohon isi nama TPM',
                 ]
             ],
             'jenis_kelamin' => [
@@ -486,7 +486,7 @@ class Pegawai extends BaseController
             'nama' => [
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'Mohon isi nama pegawai',
+                    'required' => 'Mohon isi nama TPM',
                 ]
             ],
             'jenis_kelamin' => [

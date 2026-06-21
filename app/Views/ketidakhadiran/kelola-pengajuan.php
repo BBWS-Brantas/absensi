@@ -123,7 +123,7 @@
                             <table class="table table-bordered">
                                 <tr class="text-center">
                                     <th>No</th>
-                                    <th>Nama Pegawai</th>
+                                    <th>Nama TPM</th>
                                     <th>Tipe</th>
                                     <th>Tanggal Mulai</th>
                                     <th>Tanggal Berakhir</th>

@@ -316,7 +316,7 @@ class Presensi extends BaseController
         $worksheet->setCellValue('A4', 'Tanggal Akhir');
         $worksheet->setCellValue('C3', $tanggal_awal);
         $worksheet->setCellValue('C4', $tanggal_akhir);
-        $worksheet->setCellValue('E3', 'Nama Pegawai');
+        $worksheet->setCellValue('E3', 'Nama TPM');
         $worksheet->setCellValue('E4', 'NIP');
         $worksheet->setCellValue('F3', $data_pegawai->nama);
         $worksheet->setCellValue('F4', $data_pegawai->nip);
@@ -671,7 +671,7 @@ class Presensi extends BaseController
         $worksheet->setCellValue('C3', $tanggal);
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NIP');
-        $worksheet->setCellValue('C6', 'NAMA PEGAWAI');
+        $worksheet->setCellValue('C6', 'NAMA TPM');
         $worksheet->setCellValue('D6', 'TANGGAL MASUK');
         $worksheet->setCellValue('E6', 'JAM MASUK');
         $worksheet->setCellValue('F6', 'JAM PULANG');
@@ -867,7 +867,7 @@ class Presensi extends BaseController
         $worksheet->setCellValue('C4', $filter_tahun);
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NIP');
-        $worksheet->setCellValue('C6', 'NAMA PEGAWAI');
+        $worksheet->setCellValue('C6', 'NAMA TPM');
         $worksheet->setCellValue('D6', 'TANGGAL MASUK');
         $worksheet->setCellValue('E6', 'JAM MASUK');
         $worksheet->setCellValue('F6', 'JAM PULANG');
