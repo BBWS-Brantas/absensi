@@ -122,9 +122,15 @@ class KetidakhadiranModel extends Model
         return $query->getRow();
     }
 
-    public function getDataIzinHariIni($id_pegawai = false, $startDate = false, $endDate = false)
+    public function getDataIzinHariIni($id_pegawai = false, $startDate = false, $endDate = false, $id_unit = null)
     {
         $this->builder->select('ketidakhadiran.*');
+
+        // Scoping per unit (admin): null = tanpa filter (head)
+        if ($id_unit !== null) {
+            $this->builder->join('pegawai', 'pegawai.id = ketidakhadiran.id_pegawai');
+            $this->builder->where('pegawai.id_unit', $id_unit);
+        }
 
         if ($id_pegawai) {
             $this->builder->where('id_pegawai', $id_pegawai);

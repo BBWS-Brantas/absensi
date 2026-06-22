@@ -10,6 +10,9 @@
                     <th>Username</th>
                     <th>Jabatan</th>
                     <th>Role</th>
+                    <?php if (in_groups('head')) : ?>
+                        <th>Unit Operasional</th>
+                    <?php endif; ?>
                     <th>Status</th>
                     <th style="min-width: 150px;">Aksi</th>
                 </tr>
@@ -40,6 +43,9 @@
                                                 echo 'bg-blue-lt';
                                             } ?>">
                                     <?= $pegawai->role; ?></span></td>
+                            <?php if (in_groups('head')) : ?>
+                                <td><?= $pegawai->nama_unit ? esc($pegawai->nama_unit) : '-' ?></td>
+                            <?php endif; ?>
                             <td>
                                 <?php if ($pegawai->active == 0) : ?>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-x text-danger" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -74,7 +80,7 @@
                     <?php endforeach; ?>
                 <?php else : ?>
                     <tr class="text-center">
-                        <td colspan="8">Belum ada data</td>
+                        <td colspan="<?= in_groups('head') ? 9 : 8 ?>">Belum ada data</td>
                     </tr>
                 <?php endif; ?>
             </table>

@@ -8,6 +8,7 @@ use App\Models\JabatanModel;
 use App\Models\PegawaiModel;
 use App\Models\UsersRoleModel;
 use App\Models\LokasiPresensiModel;
+use App\Models\UnitOperasionalModel;
 use Myth\Auth\Models\PermissionModel;
 use Myth\Auth\Controllers\AuthController;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -20,6 +21,7 @@ class Pegawai extends BaseController
     protected $jabatanModel;
     protected $roleModel;
     protected $lokasiModel;
+    protected $unitModel;
     protected $usersRoleModel;
     protected $permissionModel;
     protected $foto_default;
@@ -32,15 +34,28 @@ class Pegawai extends BaseController
         $this->jabatanModel = new JabatanModel();
         $this->roleModel = new RoleModel();
         $this->lokasiModel = new LokasiPresensiModel();
+        $this->unitModel = new UnitOperasionalModel();
         $this->usersRoleModel = new UsersRoleModel();
         $this->permissionModel = new PermissionModel();
         $this->foto_default = 'default.jpg';
         $this->auth = new AuthController();
     }
 
+    /**
+     * Cegah admin mengakses pegawai di luar unitnya. Head ($id_unit_scope === null) dilewati.
+     */
+    private function pastikanDalamUnit($id_unit_pegawai)
+    {
+        $id_unit_scope = current_unit_id();
+        if ($id_unit_scope !== null && (int) $id_unit_pegawai !== $id_unit_scope) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data pegawai tidak ditemukan di unit Anda');
+        }
+    }
+
     public function index(): string
     {
-        $pegawaiModel = $this->pegawaiModel->getPegawai();
+        $id_unit = current_unit_id();
+        $pegawaiModel = $this->pegawaiModel->getPegawai(false, false, false, 10, $id_unit);
         $data_jabatan = $this->jabatanModel->get()->getResultArray();
         $data_lokasi = $this->lokasiModel->get()->getResultArray();
         $data_role = $this->roleModel->findAll();
@@ -74,7 +89,7 @@ class Pegawai extends BaseController
             if ($filter['lokasi-presensi'] === null) {
                 $filter['lokasi-presensi'] = '';
             }
-            $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter);
+            $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
         }
 
         $filtered = false;
@@ -122,12 +137,15 @@ class Pegawai extends BaseController
             $filter['keyword'] = '';
         }
 
+        $id_unit = current_unit_id();
+        $hasil = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
+
         $data = [
-            'data_pegawai' => $this->pegawaiModel->getPegawai(false, $filter)['pegawai'],
+            'data_pegawai' => $hasil['pegawai'],
             'currentPage' => $currentPage,
-            'pager' => $this->pegawaiModel->getPegawai(false, $filter)['links'],
-            'total' => $this->pegawaiModel->getPegawai(false, $filter)['total'],
-            'perPage' => $this->pegawaiModel->getPegawai(false, $filter)['perPage'],
+            'pager' => $hasil['links'],
+            'total' => $hasil['total'],
+            'perPage' => $hasil['perPage'],
         ];
 
         return view('data_pegawai/hasil-pencarian', $data);
@@ -143,7 +161,7 @@ class Pegawai extends BaseController
             'jenis-kelamin' => $this->request->getPost('jenis-kelamin'),
             'lokasi-presensi' => $this->request->getPost('lokasi-presensi'),
         ];
-        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, true);
+        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, true, 10, current_unit_id());
         $data_pegawai = $pegawaiModel['pegawai'];
 
         $spreadsheet = new Spreadsheet();
@@ -275,6 +293,8 @@ class Pegawai extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Pegawai ' . $username . ' Tidak Ditemukan');
         }
 
+        $this->pastikanDalamUnit($data_pegawai->id_unit);
+
         $data = [
             'title' => 'Detail Data Pegawai ' . $data_pegawai->nama,
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
@@ -295,13 +315,21 @@ class Pegawai extends BaseController
             $nip_baru = 'PEG-0001';
         }
 
+        $id_unit_scope = current_unit_id();
+        $role_pegawai = $this->roleModel->where('name', 'pegawai')->first();
+
         $data = [
-            'title' => 'Tambah Data Pegawai: ' . $nip_baru,
+            'title' => 'Tambah Data Pegawai',
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
             'nip_baru' => $nip_baru,
             'jabatan' => $this->jabatanModel->getJabatan()['jabatan'],
             'role' => $this->roleModel->findAll(),
             'lokasi' => $this->lokasiModel->get()->getResultArray(),
+            'unit' => $this->unitModel->findAll(),
+            'current_unit_id' => $id_unit_scope,
+            // Admin (unit ter-scope) tidak boleh memilih unit/role; head bebas
+            'is_admin' => $id_unit_scope !== null,
+            'role_pegawai_id' => $role_pegawai['id'] ?? 3,
         ];
 
         return view('data_pegawai/tambah', $data);
@@ -358,6 +386,13 @@ class Pegawai extends BaseController
                     'numeric' => 'Mohon pilih lokasi yang tersedia untuk presensi pegawai',
                 ]
             ],
+            'unit' => [
+                'rules' => 'required|numeric',
+                'errors' => [
+                    'required' => 'Mohon isi unit operasional pegawai',
+                    'numeric' => 'Mohon pilih unit operasional yang tersedia',
+                ]
+            ],
             'username' => [
                 'rules' => 'required|alpha_numeric|min_length[5]|max_length[30]|is_unique[users.username]',
                 'errors' => [
@@ -401,6 +436,18 @@ class Pegawai extends BaseController
             $activate_hash = null;
         }
 
+        // Admin hanya boleh menambah pegawai di unitnya sendiri & selalu role pegawai;
+        // input unit/role dari form diabaikan untuk admin (head bebas memilih)
+        $id_unit_scope = current_unit_id();
+        $id_unit = ($id_unit_scope !== null) ? $id_unit_scope : (int) $this->request->getVar('unit');
+
+        if ($id_unit_scope !== null) {
+            $role_pegawai = $this->roleModel->where('name', 'pegawai')->first();
+            $role_id = (int) ($role_pegawai['id'] ?? 3);
+        } else {
+            $role_id = (int) $this->request->getVar('role');
+        }
+
         $this->pegawaiModel->save([
             'nip' => $this->request->getVar('nip_baru'),
             'nama' => $this->request->getVar('nama'),
@@ -409,6 +456,7 @@ class Pegawai extends BaseController
             'no_handphone' => $this->request->getVar('no_handphone'),
             'id_jabatan' => $this->request->getVar('jabatan'),
             'id_lokasi_presensi' => $this->request->getVar('lokasi_presensi'),
+            'id_unit' => $id_unit,
             'foto' => $this->foto_default,
         ]);
 
@@ -431,7 +479,7 @@ class Pegawai extends BaseController
         $user_id = $this->usersModel->insertID();
 
         $this->usersRoleModel->save([
-            'group_id' => $this->request->getVar('role'),
+            'group_id' => $role_id,
             'user_id' => $user_id,
         ]);
 
@@ -450,6 +498,8 @@ class Pegawai extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Pegawai ' . $username . ' Tidak Ditemukan');
         }
 
+        $this->pastikanDalamUnit($data_pegawai->id_unit);
+
         $data = [
             'title' => 'Edit Data Pegawai ' . $data_pegawai->nama,
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
@@ -457,6 +507,10 @@ class Pegawai extends BaseController
             'jabatan' => $this->jabatanModel->getJabatan()['jabatan'],
             'role' => $this->roleModel->findAll(),
             'lokasi' => $this->lokasiModel->get()->getResultArray(),
+            'unit' => $this->unitModel->findAll(),
+            'current_unit_id' => current_unit_id(),
+            // Admin tidak boleh mengubah unit/role pegawai; head bebas
+            'is_admin' => current_unit_id() !== null,
         ];
 
         return view('data_pegawai/edit', $data);
@@ -466,6 +520,7 @@ class Pegawai extends BaseController
     {
         $username_db = $this->request->getVar('username_db');
         $data_pegawai_db = $this->pegawaiModel->getPegawai($username_db)['pegawai'];
+        $this->pastikanDalamUnit($data_pegawai_db->id_unit);
         $email_db = $data_pegawai_db->email;
 
         $email_input = $this->request->getVar('email');
@@ -529,6 +584,13 @@ class Pegawai extends BaseController
                     'required' => 'Mohon isi lokasi untuk presensi pegawai',
                 ]
             ],
+            'unit' => [
+                'rules' => 'required|numeric',
+                'errors' => [
+                    'required' => 'Mohon isi unit operasional pegawai',
+                    'numeric' => 'Mohon pilih unit operasional yang tersedia',
+                ]
+            ],
             'username' => [
                 'rules' => $rules_username,
                 'errors' => [
@@ -550,6 +612,10 @@ class Pegawai extends BaseController
             return redirect()->to('/data-pegawai/edit/' . $username_db)->withInput();
         }
 
+        // Admin tidak dapat memindahkan pegawai ke unit lain; head bebas mengubah unit
+        $id_unit_scope = current_unit_id();
+        $id_unit = ($id_unit_scope !== null) ? $id_unit_scope : (int) $this->request->getVar('unit');
+
         $this->pegawaiModel->save([
             'id' => $this->request->getVar('id'),
             'nip' => $this->request->getVar('nip'),
@@ -559,6 +625,7 @@ class Pegawai extends BaseController
             'no_handphone' => $this->request->getVar('no_handphone'),
             'id_jabatan' => $this->request->getVar('jabatan'),
             'id_lokasi_presensi' => $this->request->getVar('lokasi_presensi'),
+            'id_unit' => $id_unit,
         ]);
 
         $id_pegawai = $this->request->getVar('id_pegawai');
@@ -573,8 +640,9 @@ class Pegawai extends BaseController
             'username' => $username,
         ]);
 
-        $role = $this->request->getVar('role');
+        // Admin tidak boleh mengubah role; paksa tetap seperti semula
         $role_db = $this->request->getVar('role_db');
+        $role = ($id_unit_scope !== null) ? $role_db : $this->request->getVar('role');
 
         if ($role !== $role_db) {
             // Mendapatkan instance model Group milik myth/auth
@@ -591,6 +659,7 @@ class Pegawai extends BaseController
     public function hapusFoto($username)
     {
         $pegawai_db = $this->pegawaiModel->getPegawai($username)['pegawai'];
+        $this->pastikanDalamUnit($pegawai_db->id_unit);
         $foto_db = $pegawai_db->foto;
 
         if ($foto_db !== $this->foto_default) {
@@ -608,6 +677,12 @@ class Pegawai extends BaseController
 
     public function delete($id)
     {
+        $pegawai_db = $this->pegawaiModel->find($id);
+        if (empty($pegawai_db)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Pegawai Tidak Ditemukan');
+        }
+        $this->pastikanDalamUnit($pegawai_db['id_unit']);
+
         $this->pegawaiModel->delete($id);
 
         session()->setFlashdata('berhasil', 'Data Pegawai Berhasil Dihapus');

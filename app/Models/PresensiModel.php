@@ -70,7 +70,7 @@ class PresensiModel extends Model
         }
     }
 
-    public function getDataPresensiHarian($tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10)
+    public function getDataPresensiHarian($tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10, $id_unit = null)
     {
         $pager = service('pager');
         $pager->setPath('laporan-presensi-harian', 'harian');
@@ -83,6 +83,11 @@ class PresensiModel extends Model
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
+
+        // Scoping per unit (admin): null = tanpa filter (head)
+        if ($id_unit !== null) {
+            $this->builder->where('pegawai.id_unit', $id_unit);
+        }
 
         $total = 0;
         $tanggal_sekarang = date('Y-m-d');
@@ -111,7 +116,7 @@ class PresensiModel extends Model
         ];
     }
 
-    public function getDataPresensiBulanan($filter_bulan = false, $filter_tahun = false, $print = false, $perPage = 10)
+    public function getDataPresensiBulanan($filter_bulan = false, $filter_tahun = false, $print = false, $perPage = 10, $id_unit = null)
     {
         $pager = service('pager');
         $pager->setPath('laporan-presensi-bulanan', 'bulanan');
@@ -124,6 +129,11 @@ class PresensiModel extends Model
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
+
+        // Scoping per unit (admin): null = tanpa filter (head)
+        if ($id_unit !== null) {
+            $this->builder->where('pegawai.id_unit', $id_unit);
+        }
 
         $total = 0;
         $bulan_sekarang = date('Y-m');
@@ -180,11 +190,19 @@ class PresensiModel extends Model
         return $result ? $result->min_date : null;
     }
 
-    public function getDataPresensiHariIni()
+    public function getDataPresensiHariIni($id_unit = null)
     {
         $builder = $this->db->table('presensi');
         $builder->select('presensi.*');
-        $query = $builder->where('tanggal_masuk', date('Y-m-d'))->get();
+        $builder->where('tanggal_masuk', date('Y-m-d'));
+
+        // Scoping per unit (admin): null = tanpa filter (head)
+        if ($id_unit !== null) {
+            $builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
+            $builder->where('pegawai.id_unit', $id_unit);
+        }
+
+        $query = $builder->get();
         return $query->getNumRows();
     }
 }

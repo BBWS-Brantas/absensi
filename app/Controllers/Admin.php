@@ -24,9 +24,10 @@ class Admin extends BaseController
 
     public function index(): string
     {
-        $jumlah_pegawai_aktif = $this->pegawaiModel->getJumlahPegawaiAktif();
-        $jumlah_pegawai_hadir = $this->presensiModel->getDataPresensiHariIni();
-        $jumlah_pegawai_izin = $this->ketidakhadiranModel->getDataIzinHariIni();
+        $id_unit = current_unit_id();
+        $jumlah_pegawai_aktif = $this->pegawaiModel->getJumlahPegawaiAktif($id_unit);
+        $jumlah_pegawai_hadir = $this->presensiModel->getDataPresensiHariIni($id_unit);
+        $jumlah_pegawai_izin = $this->ketidakhadiranModel->getDataIzinHariIni(false, false, false, $id_unit);
         $jumlah_pegawai_alpha = $jumlah_pegawai_aktif - ($jumlah_pegawai_hadir + $jumlah_pegawai_izin);
 
         $data = [

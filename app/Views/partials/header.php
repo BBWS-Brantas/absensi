@@ -32,7 +32,7 @@
                     <span class="avatar avatar-sm" style="background-image: url(<?= base_url('./assets/img/user_profile/' . $user_profile->foto) ?>)"></span>
                     <div class="d-none d-xl-block ps-2">
                         <div><?= $user_profile->nama ?></div>
-                        <div class="mt-1 small text-muted"><?= $user_profile->jabatan ?></div>
+                        <div class="mt-1 small text-muted"><?= $user_profile->role ?><?= $user_profile->nama_unit ? ' - ' . esc($user_profile->nama_unit) : '' ?></div>
                     </div>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">

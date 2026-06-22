@@ -22,8 +22,9 @@ class UsersModel extends Model
             auth_groups.name as role,
             auth_groups.id as role_id,
             pegawai.*,
-            jabatan.jabatan, 
-            lokasi_presensi.nama_lokasi as lokasi_presensi, 
+            jabatan.jabatan,
+            lokasi_presensi.nama_lokasi as lokasi_presensi,
+            unit_operasional.nama as nama_unit,
         ');
 
         // Join Tabel auth_groups_users
@@ -40,6 +41,9 @@ class UsersModel extends Model
 
         // Join Tabel lokasi_presensi
         $builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
+
+        // Join Tabel unit_operasional (left join — head tidak punya unit)
+        $builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
 
         // Hanya untuk satu user, berdasarkan user_id yang sedang Login
         $builder->where('users.id', $userId);

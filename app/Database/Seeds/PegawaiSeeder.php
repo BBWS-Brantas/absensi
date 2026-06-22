@@ -13,6 +13,7 @@ class PegawaiSeeder extends Seeder
                 'nip'                   => 'PEG-0001',
                 'id_jabatan'            => '1',
                 'id_lokasi_presensi'    => '1',
+                'id_unit'               => null, // head (PPK) — lintas unit
                 'nama'                  => 'Jaya Wahyudi Putra',
                 'jenis_kelamin'         => 'Laki-laki',
                 'alamat'                => 'Jl. Harsono RM No.1, Ragunan, Ps. Minggu, Kota Jakarta Selatan, Daerah Khusus Ibukota Jakarta 12550',
@@ -23,6 +24,7 @@ class PegawaiSeeder extends Seeder
                 'nip'                   => 'PEG-0002',
                 'id_jabatan'            => '2',
                 'id_lokasi_presensi'    => '1',
+                'id_unit'               => 1, // admin PPK OP I
                 'nama'                  => 'Tamani Indah Permata',
                 'jenis_kelamin'         => 'Perempuan',
                 'alamat'                => 'Jl. Lodan Timur No.7, Ancol, Kec. Pademangan, Jkt Utara, Daerah Khusus Ibukota Jakarta 14430',
@@ -33,6 +35,7 @@ class PegawaiSeeder extends Seeder
                 'nip'                   => 'PEG-0003',
                 'id_jabatan'            => '3',
                 'id_lokasi_presensi'    => '1',
+                'id_unit'               => 1, // pegawai TPM unit wilayah OP I
                 'nama'                  => 'Christoper Holand',
                 'jenis_kelamin'         => 'Laki-laki',
                 'alamat'                => 'Jl. Taman Suropati No.5, RT.5/RW.5, Menteng, Kec. Menteng, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10310',

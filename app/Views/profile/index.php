@@ -10,7 +10,7 @@
                     <div class="card-body p-4 text-center">
                         <span class="avatar avatar-xl mb-3 rounded" style="background-image: url(<?= base_url('/assets/img/user_profile/' . $user_profile->foto) ?>)"></span>
                         <h3 class="m-0 mb-1"><?= $user_profile->nama ?></h3>
-                        <div class="text-muted"><?= $user_profile->jabatan ?></div>
+                        <div class="text-muted"><?= $user_profile->role ?></div>
                         <div class="mt-3">
                             <span class="badge <?php
                                                 if ($user_profile->role === 'admin') {

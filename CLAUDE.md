@@ -83,6 +83,35 @@ Three Myth/Auth groups (`auth_groups`), assigned via the `auth_groups_users` joi
 
 In short: **pegawai** = self-service, **head** = manager (stats/master-data/reports/approvals, no check-in), **admin** = everything except leave approval.
 
+### Per-unit (wilayah OP) role scoping — IMPLEMENTED
+
+A role mapping (see project image) layers a **unit/region dimension** on top of the existing three roles. It does **not** add new Myth/Auth groups — it scopes `admin` and `pegawai` to one operational unit:
+
+```
+                         Role (Head) — PPK
+        ┌──────────────┬──────────────┼──────────────┬──────────────┐
+   Admin PPK OP I  Admin OP II   Admin OP III   Admin OP IV   Admin OP PIAT
+        │              │              │              │              │
+  Pegawai TPM     Pegawai TPM   Pegawai TPM    Pegawai TPM   Pegawai TPM
+   OP I            OP II         OP III         OP IV         OP PIAT
+```
+
+Units (five): **OP I, OP II, OP III, OP IV, OP PIAT**. Mapping rules:
+
+- **Head (PPK)** — global; sees **all** units' pegawai/admin data (*"Head bisa mengakses kesemua data pegawai dan admin"*). Matches today's global `head` behaviour — no scoping applied.
+- **Admin (PPK OP _x_)** — `admin` group **scoped to one unit**; sees only its own unit's pegawai, presensi, laporan, and (if extended) approvals. **This is the main change** — today `admin` is global.
+- **Pegawai (TPM OP _x_)** — `pegawai` group tagged with its unit. Already self-scoped today; only the unit tag is new.
+
+**How it's wired (files):**
+
+1. **Unit table + column.** [`unit_operasional`](app/Models/UnitOperasionalModel.php) (`id`, `nama` e.g. "OP I", `slug`, soft-delete) + **`id_unit`** (nullable) on `pegawai`, separate from `id_lokasi_presensi` so a unit is independent of physical check-in locations. Migration: [2026-06-22-000000_create_unit_operasional](app/Database/Migrations/2026-06-22-000000_create_unit_operasional.php). Five units seeded by [UnitOperasionalSeeder](app/Database/Seeds/UnitOperasionalSeeder.php).
+2. **Resolve current unit.** Helper [app/Helpers/unit_helper.php](app/Helpers/unit_helper.php) → **`current_unit_id()`**: returns `null` for `head` (no scoping), else the user's `pegawai.id_unit` (`0` if unset → matches nothing). Auto-loaded via `$helpers` in [BaseController](app/Controllers/BaseController.php). Pegawai-facing screens stay self-scoped by `id_pegawai` and don't use it.
+3. **Scoped queries.** Each admin-facing model method takes an optional trailing `$id_unit` param and adds `WHERE pegawai.id_unit = ?` only when non-null: `PegawaiModel::getPegawai`/`getJumlahPegawaiAktif`, `PresensiModel::getDataPresensiHarian`/`getDataPresensiBulanan`/`getDataPresensiHariIni`, `KetidakhadiranModel::getDataIzinHariIni`. Controllers pass `current_unit_id()`: `Admin::index` (dashboard stats), `Pegawai` (list/search/Excel), `Presensi` (laporan harian/bulanan + Excel + PDF).
+4. **Cross-unit guard + admin write-lock.** `Pegawai::pastikanDalamUnit()` throws `PageNotFoundException` if an admin opens a pegawai outside its unit — applied to `detail`/`edit`/`update`/`delete`/`hapusFoto`. On `store`/`update`, for an **admin** both `id_unit` and `role` are **forced server-side** (submitted values ignored): unit = the admin's own unit, and on `store` role = `pegawai` (admins can only create pegawai accounts), on `update` role is kept unchanged. The `tambah.php`/`edit.php` views reflect this — for admins the Unit and Role selects render **disabled** with a hidden input carrying the forced value; `head` gets the normal editable dropdowns and may choose any unit/role.
+5. **Seeded accounts.** [PegawaiSeeder](app/Database/Seeds/PegawaiSeeder.php): admin Tamani + pegawai Christoper → OP I, head Jaya → NULL.
+
+**Applying to an imported DB.** Migrations are NOT re-run on top of the imported `o-present.sql`, so for an existing DB run the one-time script [`../../add-unit-operasional.sql`](../../add-unit-operasional.sql) (creates the table, adds `id_unit`, seeds the five units). Fresh installs instead use `php spark migrate && php spark db:seed UnitOperasionalSeeder`.
+
 After login everyone is redirected to `/` (`$landingRoute` in [app/Config/Auth.php](app/Config/Auth.php), and [AuthController::attemptLogin](app/Controllers/AuthController.php)). That works for admin/pegawai, but `/` is `role:admin,pegawai`, so a **head** user gets bounced and must reach `/admin`. The custom [app/Filters/RoleFilter.php](app/Filters/RoleFilter.php) has "redirect head → /admin" logic for exactly this, but it is **dead code**: [app/Config/Filters.php](app/Config/Filters.php) aliases `role` to `Myth\Auth\Filters\RoleFilter`, not the custom one.
 
 ### Existing accounts

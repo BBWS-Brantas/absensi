@@ -105,6 +105,41 @@
                                 <?php endif; ?>
                             </div>
                             <div class="mb-3 w-100">
+                                <label class="form-label">Unit Operasional</label>
+                                <?php if ($is_admin) : ?>
+                                    <?php
+                                    $nama_unit_admin = '';
+                                    foreach ($unit as $u) {
+                                        if ((string) $u['id'] === (string) $current_unit_id) {
+                                            $nama_unit_admin = $u['nama'];
+                                            break;
+                                        }
+                                    }
+                                    ?>
+                                    <input type="hidden" name="unit" value="<?= $current_unit_id ?>">
+                                    <select class="form-select" disabled>
+                                        <option selected><?= esc($nama_unit_admin) ?></option>
+                                    </select>
+                                    <small class="form-hint">Unit otomatis mengikuti unit operasional Anda.</small>
+                                <?php else : ?>
+                                    <select name="unit" class="form-select <?= validation_show_error('unit') ? 'is-invalid' : '' ?>">
+                                        <option value="">---Pilih Unit Operasional---</option>
+                                        <?php if (!empty($unit)) : ?>
+                                            <?php foreach ($unit as $unit_option) : ?>
+                                                <option value="<?= $unit_option['id'] ?>" <?= (string) old('unit') === (string) $unit_option['id'] ? 'selected' : '' ?>><?= esc($unit_option['nama']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php else : ?>
+                                            <option value="">Tidak ada pilihan unit operasional</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <?php if (validation_show_error('unit')) : ?>
+                                        <div class="invalid-feedback">
+                                            <?= validation_show_error('unit') ?>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mb-3 w-100">
                                 <label class="form-label">Alamat Email Pegawai</label>
                                 <input name="email" type="text" class="form-control <?= validation_show_error('email') ? 'is-invalid' : '' ?>" placeholder="e.g. putricantika@gmail.com" value="<?= old('email') ?>">
                                 <?php if (validation_show_error('email')) : ?>
@@ -124,20 +159,28 @@
                             </div>
                             <div class="mb-3 w-100">
                                 <label class="form-label">Role Akun</label>
-                                <select name="role" type="text" class="form-select <?= validation_show_error('role') ? 'is-invalid' : '' ?>">
-                                    <option value="">---Pilih Role---</option>
-                                    <?php if (!empty($role)) : ?>
-                                        <?php foreach ($role as $role_option) : ?>
-                                            <option value="<?= $role_option['id'] ?>" <?= old('role') === $role_option['id'] ? 'selected' : '' ?>><?= $role_option['name'] ?></option>
-                                        <?php endforeach; ?>
-                                    <?php else : ?>
-                                        <option value="">Tidak ada pilihan role</option>
+                                <?php if ($is_admin) : ?>
+                                    <input type="hidden" name="role" value="<?= $role_pegawai_id ?>">
+                                    <select class="form-select" disabled>
+                                        <option selected>pegawai</option>
+                                    </select>
+                                    <small class="form-hint">Admin hanya dapat menambah akun dengan role pegawai.</small>
+                                <?php else : ?>
+                                    <select name="role" type="text" class="form-select <?= validation_show_error('role') ? 'is-invalid' : '' ?>">
+                                        <option value="">---Pilih Role---</option>
+                                        <?php if (!empty($role)) : ?>
+                                            <?php foreach ($role as $role_option) : ?>
+                                                <option value="<?= $role_option['id'] ?>" <?= old('role') === $role_option['id'] ? 'selected' : '' ?>><?= $role_option['name'] ?></option>
+                                            <?php endforeach; ?>
+                                        <?php else : ?>
+                                            <option value="">Tidak ada pilihan role</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <?php if (validation_show_error('role')) : ?>
+                                        <div class="invalid-feedback">
+                                            <?= validation_show_error('role') ?>
+                                        </div>
                                     <?php endif; ?>
-                                </select>
-                                <?php if (validation_show_error('role')) : ?>
-                                    <div class="invalid-feedback">
-                                        <?= validation_show_error('role') ?>
-                                    </div>
                                 <?php endif; ?>
                             </div>
                             <div class="mb-3 w-100">

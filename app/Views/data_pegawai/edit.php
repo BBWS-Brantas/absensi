@@ -67,20 +67,28 @@
                             </div>
                             <div class="mb-3 w-100">
                                 <label class="form-label">Role Akun</label>
-                                <select name="role" type="text" class="form-select <?= validation_show_error('role') ? 'is-invalid' : '' ?>">
-                                    <option value="">---Pilih Role---</option>
-                                    <?php if (!empty($role)) : ?>
-                                        <?php foreach ($role as $role_option) : ?>
-                                            <option value="<?= $role_option['id'] ?>" <?= old('role', $data_pegawai->role_id) === $role_option['id'] ? 'selected' : '' ?>><?= $role_option['name'] ?></option>
-                                        <?php endforeach; ?>
-                                    <?php else : ?>
-                                        <option value="">Tidak ada pilihan role</option>
+                                <?php if ($is_admin) : ?>
+                                    <input type="hidden" name="role" value="<?= $data_pegawai->role_id ?>">
+                                    <select class="form-select" disabled>
+                                        <option selected><?= esc($data_pegawai->role) ?></option>
+                                    </select>
+                                    <small class="form-hint">Admin tidak dapat mengubah role akun.</small>
+                                <?php else : ?>
+                                    <select name="role" type="text" class="form-select <?= validation_show_error('role') ? 'is-invalid' : '' ?>">
+                                        <option value="">---Pilih Role---</option>
+                                        <?php if (!empty($role)) : ?>
+                                            <?php foreach ($role as $role_option) : ?>
+                                                <option value="<?= $role_option['id'] ?>" <?= old('role', $data_pegawai->role_id) === $role_option['id'] ? 'selected' : '' ?>><?= $role_option['name'] ?></option>
+                                            <?php endforeach; ?>
+                                        <?php else : ?>
+                                            <option value="">Tidak ada pilihan role</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <?php if (validation_show_error('role')) : ?>
+                                        <div class="invalid-feedback">
+                                            <?= validation_show_error('role') ?>
+                                        </div>
                                     <?php endif; ?>
-                                </select>
-                                <?php if (validation_show_error('role')) : ?>
-                                    <div class="invalid-feedback">
-                                        <?= validation_show_error('role') ?>
-                                    </div>
                                 <?php endif; ?>
                             </div>
                             <div class="mb-3 w-100">
@@ -139,6 +147,32 @@
                                     <div class="invalid-feedback">
                                         <?= validation_show_error('lokasi_presensi') ?>
                                     </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mb-3 w-100">
+                                <label class="form-label">Unit Operasional</label>
+                                <?php if ($is_admin) : ?>
+                                    <input type="hidden" name="unit" value="<?= $data_pegawai->id_unit ?>">
+                                    <select class="form-select" disabled>
+                                        <option selected><?= esc($data_pegawai->nama_unit) ?></option>
+                                    </select>
+                                    <small class="form-hint">Admin tidak dapat memindahkan pegawai ke unit lain.</small>
+                                <?php else : ?>
+                                    <select name="unit" class="form-select <?= validation_show_error('unit') ? 'is-invalid' : '' ?>">
+                                        <option value="">---Pilih Unit Operasional---</option>
+                                        <?php if (!empty($unit)) : ?>
+                                            <?php foreach ($unit as $unit_option) : ?>
+                                                <option value="<?= $unit_option['id'] ?>" <?= (string) old('unit', $data_pegawai->id_unit) === (string) $unit_option['id'] ? 'selected' : '' ?>><?= esc($unit_option['nama']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php else : ?>
+                                            <option value="">Tidak ada pilihan unit operasional</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <?php if (validation_show_error('unit')) : ?>
+                                        <div class="invalid-feedback">
+                                            <?= validation_show_error('unit') ?>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </div>

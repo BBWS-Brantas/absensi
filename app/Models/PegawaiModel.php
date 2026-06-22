@@ -9,7 +9,7 @@ class PegawaiModel extends Model
     protected $db, $builder;
     protected $table = 'pegawai';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['nip', 'nama', 'jenis_kelamin', 'alamat', 'no_handphone', 'id_jabatan', 'id_lokasi_presensi', 'foto'];
+    protected $allowedFields = ['nip', 'nama', 'jenis_kelamin', 'alamat', 'no_handphone', 'id_jabatan', 'id_lokasi_presensi', 'id_unit', 'foto'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
@@ -20,7 +20,7 @@ class PegawaiModel extends Model
         $this->builder = $this->db->table('pegawai');
     }
 
-    public function getPegawai($username = false, $filter = false, $print = false, $perPage = 10)
+    public function getPegawai($username = false, $filter = false, $print = false, $perPage = 10, $id_unit = null)
     {
         $pager = service('pager');
         $pager->setPath('data-pegawai', 'pegawai');
@@ -28,13 +28,19 @@ class PegawaiModel extends Model
         $page = (@$_GET['page_pegawai']) ? $_GET['page_pegawai'] : 1;
         $offset = ($page - 1) * $perPage;
 
-        $this->builder->select('pegawai.*, users.id as id_user, users.id_pegawai, users.username, users.active, users.email, auth_groups.name as role, auth_groups.id as role_id, jabatan.jabatan, lokasi_presensi.nama_lokasi as lokasi_presensi');
+        $this->builder->select('pegawai.*, users.id as id_user, users.id_pegawai, users.username, users.active, users.email, auth_groups.name as role, auth_groups.id as role_id, jabatan.jabatan, lokasi_presensi.nama_lokasi as lokasi_presensi, unit_operasional.nama as nama_unit');
         $this->builder->join('users', 'users.id_pegawai = pegawai.id');
         $this->builder->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
         $this->builder->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
         $this->builder->join('jabatan', 'jabatan.id = pegawai.id_jabatan');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
+        $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
         $this->builder->orderBy('nip', 'ASC');
+
+        // Scoping per unit (admin): null = tanpa filter (head)
+        if ($id_unit !== null) {
+            $this->builder->where('pegawai.id_unit', $id_unit);
+        }
 
         $total = 0;
 
@@ -110,7 +116,7 @@ class PegawaiModel extends Model
         return $result->latest_nip;
     }
 
-    public function getJumlahPegawaiAktif()
+    public function getJumlahPegawaiAktif($id_unit = null)
     {
         $builder = $this->db->table('pegawai');
         $builder->select('pegawai.*, users.id as id_user, users.id_pegawai, users.username, users.active, users.email, auth_groups.name as role, auth_groups.id as role_id');
@@ -118,6 +124,11 @@ class PegawaiModel extends Model
         $builder->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
         $builder->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
         $builder->where('active', 1)->where("auth_groups.name NOT LIKE 'head'");
+
+        if ($id_unit !== null) {
+            $builder->where('pegawai.id_unit', $id_unit);
+        }
+
         $query = $builder->get();
         return $query->getNumRows();
     }
