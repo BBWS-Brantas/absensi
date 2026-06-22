@@ -21,7 +21,7 @@
                         </li>
                     <?php endif; ?>
                     <?php if (in_groups('admin') || in_groups('head')) : ?>
-                        <li class="nav-item dropdown <?= ($title === 'Dashboard' || $title === 'Data Pegawai' || $title === 'Data Jabatan' || $title === 'Data Lokasi Presensi' || $title === 'Laporan Presensi Harian' || $title === 'Laporan Presensi Bulanan') ? 'active' : '' ?>">
+                        <li class="nav-item dropdown <?= ($title === 'Dashboard' || $title === 'Data Pegawai' || $title === 'Data Jabatan' || $title === 'Data Lokasi Presensi' || $title === 'Data Unit Operasional' || $title === 'Laporan Presensi Harian' || $title === 'Laporan Presensi Bulanan') ? 'active' : '' ?>">
                             <a class="nav-link dropdown-toggle" href="<?= base_url('/admin') ?>" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                                 <span class="nav-link-icon d-md-none d-lg-inline-block"><!-- Download SVG icon from http://tabler-icons.io/i/package -->
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-hexagon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -42,7 +42,7 @@
                                             Dashboard
                                         </a>
                                         <div class="dropend">
-                                            <a class="dropdown-item dropdown-toggle <?= $title === 'Data Jabatan' || $title === 'Data Lokasi Presensi' || $title === 'Data Pegawai' ? 'active' : '' ?>" href="<?= base_url('/data-pegawai') ?>" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                            <a class="dropdown-item dropdown-toggle <?= $title === 'Data Jabatan' || $title === 'Data Lokasi Presensi' || $title === 'Data Pegawai' || $title === 'Data Unit Operasional' ? 'active' : '' ?>" href="<?= base_url('/data-pegawai') ?>" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                                                 Master Data
                                             </a>
                                             <div class="dropdown-menu">
@@ -55,6 +55,11 @@
                                                 <a href="<?= base_url('/lokasi-presensi') ?>" class="dropdown-item">
                                                     Data Lokasi Presensi
                                                 </a>
+                                                <?php if (in_groups('head')) : ?>
+                                                    <a href="<?= base_url('/unit-operasional') ?>" class="dropdown-item">
+                                                        Data Unit Operasional
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                         <div class="dropend">

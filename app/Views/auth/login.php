@@ -101,9 +101,9 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
                     </form>
                 </div>
             </div>
-            <div class="text-center text-muted mt-3">
+            <!-- <div class="text-center text-muted mt-3">
                 <a href="<?= site_url('reset-password') ?>">Reset Password</a>
-            </div>
+            </div> -->
         </div>
     </div>
     <!-- Libs JS -->

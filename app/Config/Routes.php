@@ -30,6 +30,14 @@ $routes->delete('/lokasi-presensi/(:num)', 'LokasiPresensi::delete/$1', ['filter
 $routes->get('/lokasi-presensi/(:any)', 'LokasiPresensi::detail/$1', ['filter' => 'role:admin,head']);
 $routes->post('/lokasi-presensi/excel', 'LokasiPresensi::dataLokasiExcel', ['filter' => 'role:admin,head']);
 
+// Unit Operasional (wilayah OP) — CRUD khusus head
+$routes->get('/unit-operasional', 'UnitOperasional::index', ['filter' => 'role:head']);
+$routes->post('/unit-operasional/store', 'UnitOperasional::store', ['filter' => 'role:head']);
+$routes->get('/cari-unit-operasional', 'UnitOperasional::pencarianUnit', ['filter' => 'role:head']);
+$routes->post('/unit-operasional/update', 'UnitOperasional::update', ['filter' => 'role:head']);
+$routes->delete('/unit-operasional/(:num)', 'UnitOperasional::delete/$1', ['filter' => 'role:head']);
+$routes->get('/unit-operasional/(:segment)', 'UnitOperasional::edit/$1', ['filter' => 'role:head']);
+
 $routes->get('/data-pegawai', 'Pegawai::index', ['filter' => 'role:admin,head']);
 $routes->get('/tambah-data-pegawai', 'Pegawai::add', ['filter' => 'role:admin,head']);
 $routes->post('/data-pegawai/store', 'Pegawai::store', ['filter' => 'role:admin,head']);
