@@ -743,6 +743,38 @@ class Pegawai extends BaseController
         return redirect()->to('/data-pegawai');
     }
 
+    public function bulkDelete()
+    {
+        $ids = $this->request->getPost('ids');
+        if (empty($ids)) {
+            session()->setFlashdata('error', 'Tidak ada data yang dipilih');
+            return redirect()->to('/data-pegawai');
+        }
+
+        $idArray = array_filter(explode(',', $ids));
+        $deletedCount = 0;
+        foreach ($idArray as $id) {
+            $pegawai_db = $this->pegawaiModel->find($id);
+            if ($pegawai_db) {
+                try {
+                    $this->pastikanDalamUnit($pegawai_db['id_unit']);
+                    $this->pegawaiModel->delete($id);
+                    $deletedCount++;
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+        }
+
+        if ($deletedCount > 0) {
+            session()->setFlashdata('berhasil', 'Data Pegawai Berhasil Dihapus (' . $deletedCount . ' item)');
+        } else {
+            session()->setFlashdata('error', 'Tidak ada data yang berhasil dihapus');
+        }
+
+        return redirect()->to('/data-pegawai');
+    }
+
     public function downloadTemplateImportPegawai()
     {
         $spreadsheet = new Spreadsheet();

@@ -141,10 +141,24 @@
             <div class="col-lg-12">
                 <div class="card" id="data-pegawai">
                     <div class="card-body">
-                        <h3 class="card-title">Data Pegawai</h3>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h3 class="card-title m-0">Data Pegawai</h3>
+                            <button type="button" class="btn btn-danger" id="btn-delete-selected" style="display: none;" data-bs-toggle="modal" data-bs-target="#modal-bulk-delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M4 7l16 0" />
+                                    <path d="M10 11l0 6" />
+                                    <path d="M14 11l0 6" />
+                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                                </svg>
+                                <span id="delete-selected-count">Hapus (0)</span>
+                            </button>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <tr class="text-center">
+                                    <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="select-all" title="Pilih Semua"></th>
                                     <th>No</th>
                                     <th>NIP</th>
                                     <th>Nama</th>
@@ -161,6 +175,9 @@
                                     <?php $nomor = 1 + ($perPage * ($currentPage - 1)); ?>
                                     <?php foreach ($data_pegawai as $pegawai) : ?>
                                         <tr>
+                                            <td class="text-center">
+                                                <input type="checkbox" class="form-check-input row-checkbox" value="<?= $pegawai->id ?>" data-name="<?= $pegawai->nama ?>">
+                                            </td>
                                             <td class="text-center"><?= $nomor++ ?></td>
                                             <td><?= $pegawai->nip ?></td>
                                             <td><a href="<?= base_url('/data-pegawai/' . $pegawai->username) ?>" class="d-flex align-items-start g-3 flex-wrap" style="gap: 1px;">
@@ -228,7 +245,23 @@
                         </div>
                     </div>
                     <div class="card-footer d-flex align-items-center justify-content-between">
-                        <p class="m-0 text-muted">Showing <span><?= ($perPage * ($currentPage - 1)) + 1 ?></span> to <span><?= min($perPage * $currentPage, $total) ?></span> of <span><?= $total ?></span> entries</p>
+                        <div class="d-flex align-items-center gap-3">
+                            <form action="<?= base_url('data-pegawai') ?>" method="get" class="d-flex align-items-center gap-2 m-0">
+                                <label for="perPage" class="form-label m-0">Show</label>
+                                <select name="perPage" id="perPage" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <?php foreach ([10, 25, 50, 100] as $option) : ?>
+                                        <option value="<?= $option ?>" <?= ($perPage == $option) ? 'selected' : '' ?>><?= $option ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <input type="hidden" name="keyword" value="<?= esc($filter['keyword']) ?>">
+                                <input type="hidden" name="jabatan" value="<?= esc($filter['jabatan']) ?>">
+                                <input type="hidden" name="role" value="<?= esc($filter['role']) ?>">
+                                <input type="hidden" name="status" value="<?= esc($filter['status']) ?>">
+                                <input type="hidden" name="jenis-kelamin" value="<?= esc($filter['jenis-kelamin']) ?>">
+                                <input type="hidden" name="lokasi-presensi" value="<?= esc($filter['lokasi-presensi']) ?>">
+                            </form>
+                            <p class="m-0 text-muted">Showing <span><?= ($perPage * ($currentPage - 1)) + 1 ?></span> to <span><?= min($perPage * $currentPage, $total) ?></span> of <span><?= $total ?></span> entries</p>
+                        </div>
                         <?= $pager; ?>
                     </div>
                 </div>
@@ -264,6 +297,44 @@
                             <form action="" method="post" class="d-inline" id="form-hapus">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="_method" value="DELETE">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    Hapus
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Box - Delete Multiple -->
+<div class="modal modal-blur fade" id="modal-bulk-delete" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M10.24 3.957l-8.422 14.06a1.989 1.989 0 0 0 1.7 2.983h16.845a1.989 1.989 0 0 0 1.7 -2.983l-8.423 -14.06a1.989 1.989 0 0 0 -3.4 0z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <h3>Hapus Dipilih?</h3>
+                <div class="text-muted">Apakah Anda yakin ingin menghapus <strong><span id="bulk-delete-count" class="text-danger">0</span></strong> pegawai? Data pegawai yang sudah dihapus tidak dapat dikembalikan.</div>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col"><a href="#" class="btn w-100" data-bs-dismiss="modal">
+                                Batal
+                            </a></div>
+                        <div class="col">
+                            <form action="" method="post" class="d-inline" id="form-bulk-hapus">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="ids" id="bulk-ids" value="">
                                 <button type="submit" class="btn btn-danger w-100">
                                     Hapus
                                 </button>
@@ -403,14 +474,59 @@
             })
         })
 
+        // Handle "Select All" checkbox
+        $(document).on('change', '#select-all', function() {
+            const isChecked = $(this).is(':checked');
+            $('.row-checkbox').prop('checked', isChecked);
+            updateDeleteButton();
+        });
+
+        $(document).on('change', '.row-checkbox', function() {
+            updateSelectAllCheckbox();
+            updateDeleteButton();
+        });
+
+        function updateSelectAllCheckbox() {
+            const totalCheckboxes = $('.row-checkbox').length;
+            const checkedCheckboxes = $('.row-checkbox:checked').length;
+
+            if (totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes) {
+                $('#select-all').prop('checked', true).prop('indeterminate', false);
+            } else if (checkedCheckboxes > 0) {
+                $('#select-all').prop('indeterminate', true);
+            } else {
+                $('#select-all').prop('checked', false).prop('indeterminate', false);
+            }
+        }
+
+        function updateDeleteButton() {
+            const checkedCount = $('.row-checkbox:checked').length;
+            if (checkedCount > 0) {
+                $('#btn-delete-selected').show();
+                $('#delete-selected-count').text('Hapus (' + checkedCount + ')');
+            } else {
+                $('#btn-delete-selected').hide();
+            }
+        }
+
+        $(document).on('click', '#btn-delete-selected', function() {
+            const selectedIds = [];
+            $('.row-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+            const count = selectedIds.length;
+            $('#bulk-delete-count').text(count);
+            $('#bulk-ids').val(selectedIds.join(','));
+            $('#form-bulk-hapus').attr('action', '<?= base_url('data-pegawai/bulk-delete') ?>');
+        });
+
         $('body').on('click', '.btn-hapus', function(e) {
             e.preventDefault();
             var nama = $(this).data('name');
             var id = $(this).data('id');
             $('#modal-name').html(nama);
             $('#modal-danger').modal('show');
-            // Setelah tombol hapus diklik, Anda dapat menetapkan action form hapus ke URL yang benar
-            $('#form-hapus').attr('action', '/data-pegawai/' + id);
+            $('#form-hapus').attr('action', '<?= base_url('data-pegawai/') ?>' + id);
         });
     })
 </script>

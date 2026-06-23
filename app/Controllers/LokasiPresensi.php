@@ -36,7 +36,13 @@ class LokasiPresensi extends BaseController
     public function index(): string
     {
         $id_unit = current_unit_id();
-        $lokasiModel = $this->lokasiModel->getLokasi(false, false, false, 10, $id_unit);
+        $perPageOption = (int) $this->request->getGet('perPage') ?: 10;
+        $allowedPerPage = [10, 25, 50, 100];
+        if (!in_array($perPageOption, $allowedPerPage, true)) {
+            $perPageOption = 10;
+        }
+
+        $lokasiModel = $this->lokasiModel->getLokasi(false, false, false, $perPageOption, $id_unit);
         $currentPage = $this->request->getVar('page_lokasi-presensi') ? $this->request->getVar('page_lokasi-presensi') : 1;
 
         $filter = [
@@ -55,7 +61,7 @@ class LokasiPresensi extends BaseController
             if ($filter['waktu'] === null) {
                 $filter['waktu'] = '';
             }
-            $lokasiModel = $this->lokasiModel->getLokasi(false, $filter, false, 10, $id_unit);
+            $lokasiModel = $this->lokasiModel->getLokasi(false, $filter, false, $perPageOption, $id_unit);
         }
 
         $filtered = false;
@@ -512,6 +518,42 @@ class LokasiPresensi extends BaseController
         $this->lokasiModel->delete($id);
 
         session()->setFlashdata('berhasil', 'Data Lokasi Berhasil Dihapus');
+        return redirect()->to('/lokasi-presensi');
+    }
+
+    public function bulkDelete()
+    {
+        $ids = $this->request->getPost('ids');
+        
+        if (empty($ids)) {
+            session()->setFlashdata('error', 'Tidak ada data yang dipilih');
+            return redirect()->to('/lokasi-presensi');
+        }
+
+        // Convert comma-separated ids to array
+        $idArray = array_filter(explode(',', $ids));
+        $deletedCount = 0;
+
+        foreach ($idArray as $id) {
+            $lokasi_db = $this->lokasiModel->getWhere(['id' => $id])->getFirstRow();
+            if ($lokasi_db) {
+                try {
+                    $this->pastikanDalamUnit($lokasi_db->id_unit);
+                    $this->lokasiModel->delete($id);
+                    $deletedCount++;
+                } catch (\Exception $e) {
+                    // Skip items user doesn't have permission for
+                    continue;
+                }
+            }
+        }
+
+        if ($deletedCount > 0) {
+            session()->setFlashdata('berhasil', 'Data Lokasi Berhasil Dihapus (' . $deletedCount . ' item)');
+        } else {
+            session()->setFlashdata('error', 'Tidak ada data yang berhasil dihapus');
+        }
+
         return redirect()->to('/lokasi-presensi');
     }
 

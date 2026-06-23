@@ -16,6 +16,7 @@ class LokasiPresensiPegawaiModel extends Model
 
     public function __construct()
     {
+        parent::__construct();
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('lokasi_presensi_pegawai');
     }
