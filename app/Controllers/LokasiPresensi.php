@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\LokasiPresensiModel;
 use App\Models\UnitOperasionalModel;
 use App\Models\UsersModel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -524,5 +525,300 @@ class LokasiPresensi extends BaseController
         $unit = ($scope !== null) ? $scope : $id_unit;
 
         return $this->response->setJSON($this->lokasiModel->getByUnit($unit));
+    }
+
+    public function downloadTemplateImportLokasi()
+    {
+        $spreadsheet = new Spreadsheet();
+        $ws = $spreadsheet->getActiveSheet();
+
+        $cols    = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        $headers = [
+            'NAMA LOKASI',
+            'ALAMAT',
+            'TIPE (Pusat/Cabang)',
+            'LATITUDE',
+            'LONGITUDE',
+            'RADIUS (m)',
+            'ZONA WAKTU',
+            'JAM MASUK (HH:MM)',
+            'JAM PULANG (HH:MM)',
+            'UNIT OPERASIONAL',
+        ];
+
+        foreach ($cols as $i => $col) {
+            $ws->setCellValue($col . '1', $headers[$i]);
+        }
+
+        $ws->getStyle('A1:J1')->getFont()->setBold(true);
+        $ws->getStyle('A1:J1')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF4472C4');
+        $ws->getStyle('A1:J1')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $ws->getStyle('A1:J1')->getAlignment()
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // Force H and I as text so Excel does not convert "08:00" to a time serial
+        $ws->getStyle('H:I')->getNumberFormat()
+            ->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_TEXT);
+
+        $sample = [
+            'Kantor Pusat',
+            'Jl. Merdeka No. 1, Jakarta',
+            'Pusat',
+            '-6.200000',
+            '106.816666',
+            '100',
+            'Asia/Jakarta',
+            '08:00',
+            '17:00',
+            'OP I',
+        ];
+
+        foreach ($cols as $i => $col) {
+            if (in_array($col, ['H', 'I'])) {
+                $ws->setCellValueExplicit(
+                    $col . '2',
+                    $sample[$i],
+                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+                );
+            } else {
+                $ws->setCellValue($col . '2', $sample[$i]);
+            }
+        }
+
+        $ws->getStyle('A2:J2')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFD9E1F2');
+
+        $ws->getStyle('A1:J2')->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color'       => ['argb' => 'FF000000'],
+                ],
+            ],
+        ]);
+
+        foreach ($cols as $col) {
+            $ws->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="Template_Import_Lokasi_Presensi.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit();
+    }
+
+    public function importPreview()
+    {
+        $file = $this->request->getFile('file_import');
+
+        if (!$file || !$file->isValid()) {
+            session()->setFlashdata('gagal', 'File tidak valid atau tidak ditemukan.');
+            return redirect()->to('/lokasi-presensi');
+        }
+
+        if (!in_array(strtolower($file->getClientExtension()), ['xlsx', 'xls'])) {
+            session()->setFlashdata('gagal', 'Format file harus .xlsx atau .xls');
+            return redirect()->to('/lokasi-presensi');
+        }
+
+        try {
+            $spreadsheet = IOFactory::load($file->getTempName());
+        } catch (\Exception $e) {
+            session()->setFlashdata('gagal', 'File Excel tidak dapat dibaca.');
+            return redirect()->to('/lokasi-presensi');
+        }
+
+        $ws         = $spreadsheet->getActiveSheet();
+        $highestRow = $ws->getHighestRow();
+
+        $id_unit_scope = current_unit_id();
+        $allUnits      = [];
+
+        if ($id_unit_scope === null) {
+            foreach ($this->unitModel->where('deleted_at', null)->findAll() as $u) {
+                $allUnits[strtolower(trim($u->nama))] = $u->id;
+            }
+        }
+
+        $seenNama  = [];
+        $rows      = [];
+        $validRows = [];
+
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $nama = trim((string) $ws->getCell('A' . $row)->getValue());
+            if ($nama === '') continue;
+
+            $alamat  = trim((string) $ws->getCell('B' . $row)->getValue());
+            $tipe    = trim((string) $ws->getCell('C' . $row)->getValue());
+            $lat     = trim((string) $ws->getCell('D' . $row)->getValue());
+            $lng     = trim((string) $ws->getCell('E' . $row)->getValue());
+            $radius  = trim((string) $ws->getCell('F' . $row)->getValue());
+            $zona    = trim((string) $ws->getCell('G' . $row)->getValue());
+            $unitNama = trim((string) $ws->getCell('J' . $row)->getValue());
+
+            // jam_masuk / jam_pulang: use formatted value to handle both text and time-typed cells
+            $masuk  = $this->normalizeJam($ws->getCell('H' . $row));
+            $pulang = $this->normalizeJam($ws->getCell('I' . $row));
+
+            $errors = [];
+
+            if ($nama === '') {
+                $errors[] = 'Nama lokasi wajib diisi';
+            } elseif (isset($seenNama[strtolower($nama)])) {
+                $errors[] = 'Nama lokasi duplikat dalam file';
+            } elseif ($this->lokasiModel->where('nama_lokasi', $nama)->countAllResults() > 0) {
+                $errors[] = 'Nama lokasi sudah terdaftar di sistem';
+            }
+
+            if ($alamat === '') {
+                $errors[] = 'Alamat wajib diisi';
+            }
+
+            if (!in_array($tipe, ['Pusat', 'Cabang'])) {
+                $errors[] = 'Tipe harus "Pusat" atau "Cabang"';
+            }
+
+            if ($lat === '' || !is_numeric($lat)) {
+                $errors[] = 'Latitude harus berupa angka';
+            }
+
+            if ($lng === '' || !is_numeric($lng)) {
+                $errors[] = 'Longitude harus berupa angka';
+            }
+
+            if ($radius === '' || !is_numeric($radius)) {
+                $errors[] = 'Radius harus berupa angka';
+            }
+
+            if ($zona === '' || !in_array($zona, timezone_identifiers_list())) {
+                $errors[] = 'Zona waktu tidak valid (contoh: Asia/Jakarta)';
+            }
+
+            if (!preg_match('/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/', $masuk)) {
+                $errors[] = 'Jam masuk harus format HH:MM (contoh: 08:00)';
+            }
+
+            if (!preg_match('/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/', $pulang)) {
+                $errors[] = 'Jam pulang harus format HH:MM (contoh: 17:00)';
+            }
+
+            $id_unit = $id_unit_scope;
+            if ($id_unit_scope === null) {
+                if ($unitNama === '') {
+                    $errors[] = 'Unit operasional wajib diisi';
+                } elseif (!isset($allUnits[strtolower($unitNama)])) {
+                    $errors[] = 'Unit operasional "' . $unitNama . '" tidak ditemukan';
+                } else {
+                    $id_unit = $allUnits[strtolower($unitNama)];
+                }
+            }
+
+            $isValid  = empty($errors);
+            $rows[]   = [
+                'row'          => $row,
+                'nama_lokasi'  => $nama,
+                'alamat_lokasi'=> $alamat,
+                'tipe_lokasi'  => $tipe,
+                'latitude'     => $lat,
+                'longitude'    => $lng,
+                'radius'       => $radius,
+                'zona_waktu'   => $zona,
+                'jam_masuk'    => $masuk,
+                'jam_pulang'   => $pulang,
+                'unit_nama'    => $unitNama,
+                'id_unit'      => $id_unit,
+                'status'       => $isValid ? 'valid' : 'invalid',
+                'errors'       => $errors,
+            ];
+
+            if ($isValid) {
+                $seenNama[strtolower($nama)] = true;
+                $validRows[] = [
+                    'nama_lokasi'   => $nama,
+                    'slug'          => url_title($nama, '-', true),
+                    'alamat_lokasi' => $alamat,
+                    'tipe_lokasi'   => $tipe,
+                    'latitude'      => $lat,
+                    'longitude'     => $lng,
+                    'radius'        => $radius,
+                    'zona_waktu'    => $zona,
+                    'jam_masuk'     => $masuk,
+                    'jam_pulang'    => $pulang,
+                    'id_unit'       => $id_unit,
+                ];
+            }
+        }
+
+        session()->set('lokasi_import_preview', $rows);
+        session()->set('lokasi_import_valid', $validRows);
+
+        $data = [
+            'title'         => 'Preview Import Lokasi Presensi',
+            'user_profile'  => $this->usersModel->getUserInfo(user_id()),
+            'rows'          => $rows,
+            'valid_count'   => count($validRows),
+            'invalid_count' => count($rows) - count($validRows),
+            'is_head'       => $id_unit_scope === null,
+        ];
+
+        return view('lokasi_presensi/import_preview', $data);
+    }
+
+    public function importSave()
+    {
+        $validRows = session()->get('lokasi_import_valid');
+
+        if (empty($validRows)) {
+            session()->setFlashdata('warning', 'Tidak ada data valid untuk disimpan.');
+            return redirect()->to('/lokasi-presensi');
+        }
+
+        $inserted = 0;
+        $skipped  = 0;
+
+        foreach ($validRows as $row) {
+            if ($this->lokasiModel->where('nama_lokasi', $row['nama_lokasi'])->countAllResults() > 0) {
+                $skipped++;
+                continue;
+            }
+            $this->lokasiModel->save($row);
+            $inserted++;
+        }
+
+        session()->remove('lokasi_import_preview');
+        session()->remove('lokasi_import_valid');
+
+        $msg = $inserted . ' lokasi berhasil ditambahkan';
+        if ($skipped > 0) {
+            $msg .= ', ' . $skipped . ' dilewati karena nama sudah terdaftar';
+        }
+
+        session()->setFlashdata('berhasil', $msg);
+        return redirect()->to('/lokasi-presensi');
+    }
+
+    private function normalizeJam(\PhpOffice\PhpSpreadsheet\Cell\Cell $cell): string
+    {
+        $value = $cell->getValue();
+
+        // Excel stores time as a fractional day (float); convert back to H:i
+        if (is_float($value) || (is_int($value) && $value >= 0 && $value < 1)) {
+            return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('H:i');
+        }
+
+        $str = trim((string) $value);
+
+        // Normalize single-digit hour: "8:00" → "08:00"
+        if (preg_match('/^(\d):(\d{2})$/', $str, $m)) {
+            return '0' . $m[1] . ':' . $m[2];
+        }
+
+        return $str;
     }
 }
