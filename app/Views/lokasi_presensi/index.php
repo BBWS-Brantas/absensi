@@ -108,6 +108,9 @@
                                     <th style="min-width: 300px;">Alamat Lokasi</th>
                                     <th>Zona Waktu</th>
                                     <th>Tipe Lokasi</th>
+                                    <?php if (in_groups('head')) : ?>
+                                        <th>Unit Operasional</th>
+                                    <?php endif; ?>
                                     <th style="min-width: 130px;">Aksi</th>
                                 </tr>
                                 <?php if (!empty($lokasi)) : ?>
@@ -127,6 +130,9 @@
                                             <td><?= $l->alamat_lokasi ?></td>
                                             <td class="text-center"><?= $l->zona_waktu ?></td>
                                             <td class="text-center"><?= $l->tipe_lokasi ?></td>
+                                            <?php if (in_groups('head')) : ?>
+                                                <td class="text-center"><?= $l->nama_unit ?? '-' ?></td>
+                                            <?php endif; ?>
                                             <td class="text-center">
                                                 <a href="<?= base_url('/lokasi-presensi/edit/' . $l->slug) ?>" class="badge bg-warning">
                                                     edit
@@ -139,7 +145,7 @@
                                     <?php endforeach; ?>
                                 <?php else : ?>
                                     <tr class="text-center">
-                                        <td colspan="6">Belum ada data</td>
+                                        <td colspan="<?= in_groups('head') ? 7 : 6 ?>">Belum ada data</td>
                                     </tr>
                                 <?php endif; ?>
                             </table>

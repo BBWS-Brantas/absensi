@@ -27,6 +27,7 @@
                             <?= csrf_field() ?>
                             <input type="hidden" name="username" value="<?= $user_profile->username ?>">
                             <input type="hidden" name="id_presensi" value="<?= $data_presensi_masuk->id ?>">
+                            <input type="hidden" name="id_lokasi_presensi" value="<?= $id_lokasi_presensi ?>">
                             <input type="hidden" name="tanggal_keluar" value="<?= $tanggal_keluar ?>">
                             <input type="hidden" name="jam_keluar" value="<?= $jam_keluar ?>">
                             <div class="mt-3">

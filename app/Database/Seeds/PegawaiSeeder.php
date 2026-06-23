@@ -12,7 +12,6 @@ class PegawaiSeeder extends Seeder
             [
                 'nip'                   => 'PEG-0001',
                 'id_jabatan'            => '1',
-                'id_lokasi_presensi'    => '1',
                 'id_unit'               => null, // head (PPK) — lintas unit
                 'nama'                  => 'Jaya Wahyudi Putra',
                 'jenis_kelamin'         => 'Laki-laki',
@@ -23,7 +22,6 @@ class PegawaiSeeder extends Seeder
             [
                 'nip'                   => 'PEG-0002',
                 'id_jabatan'            => '2',
-                'id_lokasi_presensi'    => '1',
                 'id_unit'               => 1, // admin PPK OP I
                 'nama'                  => 'Tamani Indah Permata',
                 'jenis_kelamin'         => 'Perempuan',
@@ -34,7 +32,6 @@ class PegawaiSeeder extends Seeder
             [
                 'nip'                   => 'PEG-0003',
                 'id_jabatan'            => '3',
-                'id_lokasi_presensi'    => '1',
                 'id_unit'               => 1, // pegawai TPM unit wilayah OP I
                 'nama'                  => 'Christoper Holand',
                 'jenis_kelamin'         => 'Laki-laki',

@@ -74,7 +74,15 @@
                                 </tr>
                                 <tr>
                                     <th>Lokasi Presensi</th>
-                                    <td><?= $user_profile->lokasi_presensi ?></td>
+                                    <td>
+                                        <?php if (!empty($daftar_lokasi)) : ?>
+                                            <?php foreach ($daftar_lokasi as $lok) : ?>
+                                                <span class="badge bg-blue-lt me-1 mb-1"><?= esc($lok->nama_lokasi) ?></span>
+                                            <?php endforeach; ?>
+                                        <?php else : ?>
+                                            <span class="text-muted">Belum ada lokasi</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>Status</th>

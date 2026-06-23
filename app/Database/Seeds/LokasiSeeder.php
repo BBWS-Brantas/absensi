@@ -14,12 +14,26 @@ class LokasiSeeder extends Seeder
                 'slug'              => 'gedung-jaya-raya',
                 'alamat_lokasi'     => 'RT.5/RW.2, Gambir, Kecamatan Gambir, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10110',
                 'tipe_lokasi'       => 'Pusat',
+                'id_unit'           => 1, // OP I
                 'latitude'          => '-6.195590234157995',
                 'longitude'         => '106.81301455947505',
                 'radius'            => 500,
                 'zona_waktu'        => 'Asia/Jakarta',
                 'jam_masuk'         => '08:00:00',
                 'jam_pulang'        => '18:00:00',
+            ],
+            [
+                'nama_lokasi'       => 'Kantor Cabang Menteng',
+                'slug'              => 'kantor-cabang-menteng',
+                'alamat_lokasi'     => 'Jl. Taman Suropati No.5, Menteng, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10310',
+                'tipe_lokasi'       => 'Cabang',
+                'id_unit'           => 1, // OP I
+                'latitude'          => '-6.198268',
+                'longitude'         => '106.832477',
+                'radius'            => 300,
+                'zona_waktu'        => 'Asia/Jakarta',
+                'jam_masuk'         => '07:30:00',
+                'jam_pulang'        => '16:30:00',
             ],
         ];
 

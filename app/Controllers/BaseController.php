@@ -64,11 +64,18 @@ abstract class BaseController extends Controller
         $this->lokasiModel = new LokasiPresensiModel();
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
-        $user_lokasi = $this->lokasiModel->getWhere(['nama_lokasi' => $user_profile->lokasi_presensi])->getFirstRow();
 
-        // Zona Waktu
-        if (in_array($user_lokasi->zona_waktu, timezone_identifiers_list())) {
-            date_default_timezone_set($user_lokasi->zona_waktu);
+        // Zona waktu default: ikuti lokasi pertama yang ter-assign (pegawai bisa banyak lokasi).
+        // Fallback aman ke Asia/Jakarta bila tidak ada lokasi / belum login.
+        $zona = null;
+        if ($user_profile) {
+            $lokasiPegawaiModel = new \App\Models\LokasiPresensiPegawaiModel();
+            $daftar_lokasi = $lokasiPegawaiModel->getLokasiByPegawai($user_profile->id_pegawai);
+            $zona = $daftar_lokasi[0]->zona_waktu ?? null;
+        }
+
+        if ($zona && in_array($zona, timezone_identifiers_list())) {
+            date_default_timezone_set($zona);
         } else {
             date_default_timezone_set('Asia/Jakarta');
         }

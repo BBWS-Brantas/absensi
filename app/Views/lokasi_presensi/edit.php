@@ -45,6 +45,30 @@
                                 <?php endif; ?>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label">Unit Operasional</label>
+                                <?php if ($is_admin) : ?>
+                                    <input type="hidden" name="unit" value="<?= $lokasi['id_unit'] ?>">
+                                    <select class="form-select" disabled>
+                                        <option selected><?= esc($lokasi['nama_unit'] ?? '-') ?></option>
+                                    </select>
+                                    <small class="form-hint">Admin tidak dapat memindahkan lokasi ke unit lain.</small>
+                                <?php else : ?>
+                                    <select name="unit" class="form-select <?= validation_show_error('unit') ? 'is-invalid' : '' ?>">
+                                        <option value="">---Pilih Unit Operasional---</option>
+                                        <?php if (!empty($unit)) : ?>
+                                            <?php foreach ($unit as $unit_option) : ?>
+                                                <option value="<?= $unit_option['id'] ?>" <?= (string) old('unit', $lokasi['id_unit']) === (string) $unit_option['id'] ? 'selected' : '' ?>><?= esc($unit_option['nama']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                    <?php if (validation_show_error('unit')) : ?>
+                                        <div class="invalid-feedback">
+                                            <?= validation_show_error('unit') ?>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label">Latitude</label>
                                 <input name="latitude" type="text" class="form-control <?= validation_show_error('latitude') ? 'is-invalid' : '' ?>" placeholder="e.g. -6.1239302" value="<?= old('latitude', $lokasi['latitude']) ?>">
                                 <?php if (validation_show_error('latitude')) : ?>

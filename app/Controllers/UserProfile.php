@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\UsersModel;
 use App\Models\PegawaiModel;
 use App\Models\EmailTokenModel;
+use App\Models\LokasiPresensiPegawaiModel;
 use Myth\Auth\Controllers\AuthController;
 use Config\Email;
 
@@ -12,6 +13,7 @@ class UserProfile extends BaseController
 {
     protected $usersModel;
     protected $pegawaiModel;
+    protected $lokasiPegawaiModel;
     protected $emailTokenModel;
     protected $foto_default;
     protected $auth;
@@ -22,6 +24,7 @@ class UserProfile extends BaseController
     {
         $this->usersModel = new UsersModel();
         $this->pegawaiModel = new PegawaiModel();
+        $this->lokasiPegawaiModel = new LokasiPresensiPegawaiModel();
         $this->emailTokenModel = new EmailTokenModel();
         $this->foto_default = 'default.jpg';
         $this->auth = new AuthController();
@@ -36,6 +39,7 @@ class UserProfile extends BaseController
         $data = [
             'title' => 'Profile',
             'user_profile' => $user_profile,
+            'daftar_lokasi' => $this->lokasiPegawaiModel->getLokasiByPegawai($user_profile->id_pegawai),
         ];
 
         return view('profile/index', $data);

@@ -9,7 +9,7 @@ class PegawaiModel extends Model
     protected $db, $builder;
     protected $table = 'pegawai';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['nip', 'nama', 'jenis_kelamin', 'alamat', 'no_handphone', 'id_jabatan', 'id_lokasi_presensi', 'id_unit', 'foto'];
+    protected $allowedFields = ['nip', 'nama', 'jenis_kelamin', 'alamat', 'no_handphone', 'id_jabatan', 'id_unit', 'foto'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
@@ -28,12 +28,13 @@ class PegawaiModel extends Model
         $page = (@$_GET['page_pegawai']) ? $_GET['page_pegawai'] : 1;
         $offset = ($page - 1) * $perPage;
 
-        $this->builder->select('pegawai.*, users.id as id_user, users.id_pegawai, users.username, users.active, users.email, auth_groups.name as role, auth_groups.id as role_id, jabatan.jabatan, lokasi_presensi.nama_lokasi as lokasi_presensi, unit_operasional.nama as nama_unit');
+        $this->builder->select('pegawai.*, users.id as id_user, users.id_pegawai, users.username, users.active, users.email, auth_groups.name as role, auth_groups.id as role_id, jabatan.jabatan, unit_operasional.nama as nama_unit');
+        // Daftar lokasi (banyak) via subquery agar tak menggandakan baris / kena ONLY_FULL_GROUP_BY
+        $this->builder->select('(SELECT GROUP_CONCAT(lp.nama_lokasi ORDER BY lp.nama_lokasi SEPARATOR ", ") FROM lokasi_presensi_pegawai lpp JOIN lokasi_presensi lp ON lp.id = lpp.id_lokasi_presensi WHERE lpp.id_pegawai = pegawai.id AND lpp.active = 1) as lokasi_presensi', false);
         $this->builder->join('users', 'users.id_pegawai = pegawai.id');
         $this->builder->join('auth_groups_users', 'auth_groups_users.user_id = users.id');
         $this->builder->join('auth_groups', 'auth_groups.id = auth_groups_users.group_id');
         $this->builder->join('jabatan', 'jabatan.id = pegawai.id_jabatan');
-        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
         $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
         $this->builder->orderBy('nip', 'ASC');
 
@@ -72,7 +73,7 @@ class PegawaiModel extends Model
             }
 
             if ($filter_lokasi) {
-                $this->builder->where('lokasi_presensi.nama_lokasi', $filter_lokasi);
+                $this->builder->where('EXISTS (SELECT 1 FROM lokasi_presensi_pegawai lpp JOIN lokasi_presensi lp ON lp.id = lpp.id_lokasi_presensi WHERE lpp.id_pegawai = pegawai.id AND lpp.active = 1 AND lp.nama_lokasi = ' . $this->db->escape($filter_lokasi) . ')', null, false);
             }
 
             if ($filter_keyword) {

@@ -87,24 +87,6 @@
                     <div class="card">
                         <div class="card-body">
                             <div class="mb-3 w-100">
-                                <label class="form-label">Lokasi Presensi</label>
-                                <select name="lokasi_presensi" type="text" class="form-select <?= validation_show_error('lokasi_presensi') ? 'is-invalid' : '' ?>">
-                                    <option value="">---Pilih Lokasi Presensi---</option>
-                                    <?php if (!empty($lokasi)) : ?>
-                                        <?php foreach ($lokasi as $lokasi_option) : ?>
-                                            <option value="<?= $lokasi_option['id'] ?>" <?= old('lokasi_presensi') === $lokasi_option['id'] ? 'selected' : '' ?>><?= $lokasi_option['nama_lokasi'] ?></option>
-                                        <?php endforeach; ?>
-                                    <?php else : ?>
-                                        <option value="">Tidak ada pilihan lokasi presensi</option>
-                                    <?php endif; ?>
-                                </select>
-                                <?php if (validation_show_error('lokasi_presensi')) : ?>
-                                    <div class="invalid-feedback">
-                                        <?= validation_show_error('lokasi_presensi') ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="mb-3 w-100">
                                 <label class="form-label">Unit Operasional</label>
                                 <?php if ($is_admin) : ?>
                                     <?php
@@ -122,7 +104,7 @@
                                     </select>
                                     <small class="form-hint">Unit otomatis mengikuti unit operasional Anda.</small>
                                 <?php else : ?>
-                                    <select name="unit" class="form-select <?= validation_show_error('unit') ? 'is-invalid' : '' ?>">
+                                    <select name="unit" id="unit-select" class="form-select <?= validation_show_error('unit') ? 'is-invalid' : '' ?>">
                                         <option value="">---Pilih Unit Operasional---</option>
                                         <?php if (!empty($unit)) : ?>
                                             <?php foreach ($unit as $unit_option) : ?>
@@ -137,6 +119,23 @@
                                             <?= validation_show_error('unit') ?>
                                         </div>
                                     <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mb-3 w-100">
+                                <label class="form-label">Lokasi Presensi <span class="text-muted">(boleh lebih dari satu)</span></label>
+                                <?php $lokasi_terpilih_old = old('lokasi_presensi') ?? ($lokasi_terpilih ?? []); ?>
+                                <select name="lokasi_presensi[]" id="lokasi-presensi-select" multiple class="form-select <?= validation_show_error('lokasi_presensi') ? 'is-invalid' : '' ?>">
+                                    <?php if (!empty($lokasi)) : ?>
+                                        <?php foreach ($lokasi as $lokasi_option) : ?>
+                                            <option value="<?= $lokasi_option['id'] ?>" <?= in_array($lokasi_option['id'], $lokasi_terpilih_old) ? 'selected' : '' ?>><?= esc($lokasi_option['nama_lokasi']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <small class="form-hint" id="lokasi-hint"><?= $is_admin ? 'Pilih satu atau lebih lokasi.' : 'Pilih unit operasional dulu, lalu pilih lokasi.' ?></small>
+                                <?php if (validation_show_error('lokasi_presensi')) : ?>
+                                    <div class="invalid-feedback d-block">
+                                        <?= validation_show_error('lokasi_presensi') ?>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                             <div class="mb-3 w-100">
@@ -240,5 +239,43 @@
         </div>
     </div>
 </div>
+
+<script>
+    $(document).ready(function() {
+        var byUnitUrl = '<?= base_url('lokasi-presensi/by-unit') ?>/';
+        var $lokasi = $('#lokasi-presensi-select');
+        var $hint = $('#lokasi-hint');
+
+        // Multi-select dengan tampilan chip + dropdown
+        $lokasi.select2({
+            placeholder: 'Pilih lokasi presensi',
+            width: '100%',
+            allowClear: true,
+            closeOnSelect: false,
+        });
+
+        // Head: ganti unit -> muat ulang daftar lokasi sesuai unit (lokasi mengikuti unit).
+        // Admin: unit terkunci (#unit-select tidak ada) -> skrip dilewati.
+        var $unit = $('#unit-select');
+        if ($unit.length) {
+            $unit.on('change', function() {
+                var idUnit = $(this).val();
+                $lokasi.empty().trigger('change');
+                if (!idUnit) {
+                    $hint.text('Pilih unit operasional dulu, lalu pilih lokasi.');
+                    return;
+                }
+                $.getJSON(byUnitUrl + idUnit, function(data) {
+                    $lokasi.empty();
+                    data.forEach(function(lok) {
+                        $lokasi.append(new Option(lok.nama_lokasi, lok.id, false, false));
+                    });
+                    $lokasi.trigger('change');
+                    $hint.text(data.length ? 'Pilih satu atau lebih lokasi.' : 'Belum ada lokasi untuk unit ini.');
+                });
+            });
+        }
+    });
+</script>
 
 <?= $this->endSection() ?>

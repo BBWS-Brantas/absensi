@@ -27,6 +27,7 @@ $routes->get('/cari-lokasi', 'LokasiPresensi::pencarianLokasi', ['filter' => 'ro
 $routes->get('/lokasi-presensi/edit/(:segment)', 'LokasiPresensi::edit/$1', ['filter' => 'role:admin,head']);
 $routes->post('/lokasi-presensi/update', 'LokasiPresensi::update', ['filter' => 'role:admin,head']);
 $routes->delete('/lokasi-presensi/(:num)', 'LokasiPresensi::delete/$1', ['filter' => 'role:admin,head']);
+$routes->get('/lokasi-presensi/by-unit/(:num)', 'LokasiPresensi::byUnit/$1', ['filter' => 'role:admin,head']);
 $routes->get('/lokasi-presensi/(:any)', 'LokasiPresensi::detail/$1', ['filter' => 'role:admin,head']);
 $routes->post('/lokasi-presensi/excel', 'LokasiPresensi::dataLokasiExcel', ['filter' => 'role:admin,head']);
 

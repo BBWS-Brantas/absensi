@@ -107,7 +107,8 @@
                                         // TOTAL KETERLAMBATAN
                                         $jam_masuk = date('H:i:s', strtotime($data_presensi->jam_masuk));
                                         $timestamp_jam_masuk_real = strtotime($jam_masuk);
-                                        $timestamp_jam_masuk_kantor = strtotime($jam_masuk_kantor);
+                                        // Jam masuk kantor mengikuti lokasi tempat check-in (per baris)
+                                        $timestamp_jam_masuk_kantor = !empty($data_presensi->jam_masuk_kantor) ? strtotime($data_presensi->jam_masuk_kantor) : $timestamp_jam_masuk_real;
 
                                         $terlambat = $timestamp_jam_masuk_real - $timestamp_jam_masuk_kantor;
                                         $total_jam_keterlambatan = floor($terlambat / 3600);

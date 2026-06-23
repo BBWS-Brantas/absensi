@@ -8,6 +8,7 @@ use App\Models\JabatanModel;
 use App\Models\PegawaiModel;
 use App\Models\UsersRoleModel;
 use App\Models\LokasiPresensiModel;
+use App\Models\LokasiPresensiPegawaiModel;
 use App\Models\UnitOperasionalModel;
 use Myth\Auth\Models\PermissionModel;
 use Myth\Auth\Controllers\AuthController;
@@ -21,6 +22,7 @@ class Pegawai extends BaseController
     protected $jabatanModel;
     protected $roleModel;
     protected $lokasiModel;
+    protected $lokasiPegawaiModel;
     protected $unitModel;
     protected $usersRoleModel;
     protected $permissionModel;
@@ -34,6 +36,7 @@ class Pegawai extends BaseController
         $this->jabatanModel = new JabatanModel();
         $this->roleModel = new RoleModel();
         $this->lokasiModel = new LokasiPresensiModel();
+        $this->lokasiPegawaiModel = new LokasiPresensiPegawaiModel();
         $this->unitModel = new UnitOperasionalModel();
         $this->usersRoleModel = new UsersRoleModel();
         $this->permissionModel = new PermissionModel();
@@ -52,12 +55,32 @@ class Pegawai extends BaseController
         }
     }
 
+    /**
+     * Pastikan semua id lokasi yang dipilih benar-benar milik unit pegawai.
+     * Guard server-side — jangan hanya andalkan filter dropdown.
+     */
+    private function lokasiDalamUnit($ids, $id_unit): bool
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $ids))));
+        if (empty($ids)) {
+            return false;
+        }
+
+        $builder = \Config\Database::connect()->table('lokasi_presensi');
+        $builder->whereIn('id', $ids);
+        if ($id_unit !== null) {
+            $builder->where('id_unit', $id_unit);
+        }
+
+        return $builder->countAllResults() === count($ids);
+    }
+
     public function index(): string
     {
         $id_unit = current_unit_id();
         $pegawaiModel = $this->pegawaiModel->getPegawai(false, false, false, 10, $id_unit);
         $data_jabatan = $this->jabatanModel->get()->getResultArray();
-        $data_lokasi = $this->lokasiModel->get()->getResultArray();
+        $data_lokasi = $this->lokasiModel->getByUnit($id_unit);
         $data_role = $this->roleModel->findAll();
         $currentPage = $this->request->getVar('page_pegawai') ? $this->request->getVar('page_pegawai') : 1;
 
@@ -299,6 +322,7 @@ class Pegawai extends BaseController
             'title' => 'Detail Data Pegawai ' . $data_pegawai->nama,
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
             'data_pegawai' => $data_pegawai,
+            'daftar_lokasi' => $this->lokasiPegawaiModel->getLokasiByPegawai($data_pegawai->id),
         ];
 
         return view('data_pegawai/detail', $data);
@@ -324,7 +348,9 @@ class Pegawai extends BaseController
             'nip_baru' => $nip_baru,
             'jabatan' => $this->jabatanModel->getJabatan()['jabatan'],
             'role' => $this->roleModel->findAll(),
-            'lokasi' => $this->lokasiModel->get()->getResultArray(),
+            // Admin: lokasi unitnya; head: kosong dulu, diisi via AJAX saat pilih unit
+            'lokasi' => ($id_unit_scope !== null) ? $this->lokasiModel->getByUnit($id_unit_scope) : [],
+            'lokasi_terpilih' => [],
             'unit' => $this->unitModel->findAll(),
             'current_unit_id' => $id_unit_scope,
             // Admin (unit ter-scope) tidak boleh memilih unit/role; head bebas
@@ -380,10 +406,9 @@ class Pegawai extends BaseController
                 ]
             ],
             'lokasi_presensi' => [
-                'rules' => 'required|numeric',
+                'rules' => 'required',
                 'errors' => [
-                    'required' => 'Mohon isi lokasi untuk presensi pegawai',
-                    'numeric' => 'Mohon pilih lokasi yang tersedia untuk presensi pegawai',
+                    'required' => 'Mohon pilih minimal satu lokasi untuk presensi pegawai',
                 ]
             ],
             'unit' => [
@@ -441,6 +466,13 @@ class Pegawai extends BaseController
         $id_unit_scope = current_unit_id();
         $id_unit = ($id_unit_scope !== null) ? $id_unit_scope : (int) $this->request->getVar('unit');
 
+        // Guard: lokasi yang dipilih harus milik unit pegawai
+        $lokasi_ids = (array) $this->request->getVar('lokasi_presensi');
+        if (!$this->lokasiDalamUnit($lokasi_ids, $id_unit)) {
+            session()->setFlashdata('gagal', 'Lokasi presensi yang dipilih tidak valid untuk unit tersebut');
+            return redirect()->to('/tambah-data-pegawai')->withInput();
+        }
+
         if ($id_unit_scope !== null) {
             $role_pegawai = $this->roleModel->where('name', 'pegawai')->first();
             $role_id = (int) ($role_pegawai['id'] ?? 3);
@@ -455,13 +487,18 @@ class Pegawai extends BaseController
             'alamat' => $this->request->getVar('alamat'),
             'no_handphone' => $this->request->getVar('no_handphone'),
             'id_jabatan' => $this->request->getVar('jabatan'),
-            'id_lokasi_presensi' => $this->request->getVar('lokasi_presensi'),
             'id_unit' => $id_unit,
             'foto' => $this->foto_default,
         ]);
 
         // Mendapatkan ID terakhir dari model pegawai
         $id_pegawai = $this->pegawaiModel->insertID();
+
+        // Simpan assignment lokasi (many-to-many) secara atomik
+        $db = \Config\Database::connect();
+        $db->transStart();
+        $this->lokasiPegawaiModel->syncLokasi($id_pegawai, $lokasi_ids);
+        $db->transComplete();
 
         $email = $this->request->getVar('email');
         $username =  $this->request->getVar('username');
@@ -506,7 +543,9 @@ class Pegawai extends BaseController
             'data_pegawai' => $data_pegawai,
             'jabatan' => $this->jabatanModel->getJabatan()['jabatan'],
             'role' => $this->roleModel->findAll(),
-            'lokasi' => $this->lokasiModel->get()->getResultArray(),
+            // Lokasi mengikuti unit pegawai saat ini; head bisa ganti unit (reload via AJAX)
+            'lokasi' => $this->lokasiModel->getByUnit($data_pegawai->id_unit),
+            'lokasi_terpilih' => $this->lokasiPegawaiModel->getIdLokasiByPegawai($data_pegawai->id),
             'unit' => $this->unitModel->findAll(),
             'current_unit_id' => current_unit_id(),
             // Admin tidak boleh mengubah unit/role pegawai; head bebas
@@ -616,17 +655,31 @@ class Pegawai extends BaseController
         $id_unit_scope = current_unit_id();
         $id_unit = ($id_unit_scope !== null) ? $id_unit_scope : (int) $this->request->getVar('unit');
 
+        // Guard: lokasi yang dipilih harus milik unit pegawai
+        $lokasi_ids = (array) $this->request->getVar('lokasi_presensi');
+        if (!$this->lokasiDalamUnit($lokasi_ids, $id_unit)) {
+            session()->setFlashdata('gagal', 'Lokasi presensi yang dipilih tidak valid untuk unit tersebut');
+            return redirect()->to('/data-pegawai/edit/' . $username_db)->withInput();
+        }
+
+        $pegawai_id = (int) $this->request->getVar('id');
+
         $this->pegawaiModel->save([
-            'id' => $this->request->getVar('id'),
+            'id' => $pegawai_id,
             'nip' => $this->request->getVar('nip'),
             'nama' => $this->request->getVar('nama'),
             'jenis_kelamin' => $this->request->getVar('jenis_kelamin'),
             'alamat' => $this->request->getVar('alamat'),
             'no_handphone' => $this->request->getVar('no_handphone'),
             'id_jabatan' => $this->request->getVar('jabatan'),
-            'id_lokasi_presensi' => $this->request->getVar('lokasi_presensi'),
             'id_unit' => $id_unit,
         ]);
+
+        // Sinkronkan assignment lokasi (hapus lama + insert baru) secara atomik
+        $db = \Config\Database::connect();
+        $db->transStart();
+        $this->lokasiPegawaiModel->syncLokasi($pegawai_id, $lokasi_ids);
+        $db->transComplete();
 
         $id_pegawai = $this->request->getVar('id_pegawai');
         $email = $this->request->getVar('email');

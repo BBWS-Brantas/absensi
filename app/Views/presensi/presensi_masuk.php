@@ -21,6 +21,7 @@
                             <?= csrf_field() ?>
                             <input type="hidden" name="username" value="<?= $user_profile->username ?>">
                             <input type="hidden" name="id_pegawai" value="<?= $user_profile->id_pegawai ?>">
+                            <input type="hidden" name="id_lokasi_presensi" value="<?= $id_lokasi_presensi ?>">
                             <input type="hidden" name="tanggal_masuk" value="<?= $tanggal_masuk ?>">
                             <input type="hidden" name="jam_masuk" value="<?= $jam_masuk ?>">
                             <div class="mt-3">

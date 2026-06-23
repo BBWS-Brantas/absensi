@@ -9,7 +9,7 @@ class PresensiModel extends Model
     protected $db, $builder;
     protected $table = 'presensi';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['id_pegawai', 'tanggal_masuk', 'jam_masuk', 'foto_masuk', 'tanggal_keluar', 'jam_keluar', 'foto_keluar', 'keterangan'];
+    protected $allowedFields = ['id_pegawai', 'id_lokasi_presensi', 'id_lokasi_keluar', 'tanggal_masuk', 'jam_masuk', 'foto_masuk', 'tanggal_keluar', 'jam_keluar', 'foto_keluar', 'keterangan'];
     protected $useTimestamps = true;
 
     public function __construct()
@@ -26,9 +26,9 @@ class PresensiModel extends Model
         $page = (@$_GET['page_rekap']) ? $_GET['page_rekap'] : 1;
         $offset = ($page - 1) * $perPage;
 
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, pegawai.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
-        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
+        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
         $this->builder->where('presensi.id_pegawai', $id_pegawai);
         $this->builder->orderBy('presensi.tanggal_masuk', 'DESC');
 
@@ -79,9 +79,9 @@ class PresensiModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $this->builder = $this->db->table('presensi');
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, pegawai.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
-        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
+        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
 
         // Scoping per unit (admin): null = tanpa filter (head)
@@ -125,9 +125,9 @@ class PresensiModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $this->builder = $this->db->table('presensi');
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, pegawai.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
-        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = pegawai.id_lokasi_presensi');
+        $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
 
         // Scoping per unit (admin): null = tanpa filter (head)

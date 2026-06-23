@@ -7,6 +7,7 @@ use App\Models\UsersModel;
 use App\Models\PegawaiModel;
 use App\Models\PresensiModel;
 use App\Models\LokasiPresensiModel;
+use App\Models\LokasiPresensiPegawaiModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -14,6 +15,7 @@ class Presensi extends BaseController
 {
     protected $usersModel;
     protected $lokasiModel;
+    protected $lokasiPegawaiModel;
     protected $presensiModel;
     protected $pegawaiModel;
 
@@ -21,6 +23,7 @@ class Presensi extends BaseController
     {
         $this->usersModel = new UsersModel();
         $this->lokasiModel = new LokasiPresensiModel();
+        $this->lokasiPegawaiModel = new LokasiPresensiPegawaiModel();
         $this->presensiModel = new PresensiModel();
         $this->pegawaiModel = new PegawaiModel();
     }
@@ -51,10 +54,7 @@ class Presensi extends BaseController
 
         $latitude_pegawai = $this->request->getVar('latitude_pegawai');
         $longitude_pegawai = $this->request->getVar('longitude_pegawai');
-        $latitude_kantor = $this->request->getVar('latitude_kantor');
-        $longitude_kantor = $this->request->getVar('longitude_kantor');
-        $radius = $this->request->getVar('radius');
-        $zona_waktu = $this->request->getVar('zona_waktu');
+        $id_lokasi = $this->request->getVar('id_lokasi_presensi');
         $tanggal_masuk = $this->request->getVar('tanggal_masuk');
         $jam_masuk = $this->request->getVar('jam_masuk');
 
@@ -64,11 +64,21 @@ class Presensi extends BaseController
             return redirect()->to(base_url());
         }
 
-        // Jika lokasi presensi tidak terdeteksi, maka arahkan kembali ke halaman home
-        if (empty($latitude_kantor) || empty($longitude_kantor)) {
-            session()->setFlashdata('gagal', 'Lokasi presensi tidak valid. Mohon hubungi Admin.');
+        // Lokasi harus dipilih & benar-benar ter-assign ke pegawai
+        if (empty($id_lokasi) || !$this->lokasiPegawaiModel->isAssigned($user_profile->id_pegawai, $id_lokasi)) {
+            session()->setFlashdata('gagal', 'Lokasi presensi tidak valid untuk akun Anda.');
             return redirect()->to(base_url());
         }
+
+        // Koordinat kantor diambil dari server (tidak dipercayakan ke input client)
+        $lokasi = $this->lokasiModel->getWhere(['id' => $id_lokasi])->getFirstRow();
+        if (!$lokasi) {
+            session()->setFlashdata('gagal', 'Lokasi presensi tidak ditemukan. Mohon hubungi Admin.');
+            return redirect()->to(base_url());
+        }
+        $latitude_kantor = $lokasi->latitude;
+        $longitude_kantor = $lokasi->longitude;
+        $radius = $lokasi->radius;
 
         // Cek Perbedaan Koordinat Pegawai dengan Lokasi Presensi
         $perbedaan_koordinat = $longitude_pegawai - $longitude_kantor;
@@ -98,6 +108,8 @@ class Presensi extends BaseController
             'latitude_kantor' => $latitude_kantor,
             'longitude_kantor' => $longitude_kantor,
             'radius' => $radius,
+            'id_lokasi_presensi' => $id_lokasi,
+            'nama_lokasi' => $lokasi->nama_lokasi,
             'tanggal_masuk' => $tanggal_masuk,
             'jam_masuk' => $jam_masuk,
         ];
@@ -113,6 +125,15 @@ class Presensi extends BaseController
             return redirect()->to(base_url());
         }
 
+        $id_pegawai = $this->request->getPost('id_pegawai');
+        $id_lokasi = $this->request->getPost('id_lokasi_presensi');
+
+        // Guard: lokasi harus ter-assign ke pegawai (cek sebelum menyimpan foto)
+        if (empty($id_lokasi) || !$this->lokasiPegawaiModel->isAssigned($id_pegawai, $id_lokasi)) {
+            session()->setFlashdata('gagal', 'Lokasi presensi tidak valid untuk akun Anda.');
+            return redirect()->to(base_url());
+        }
+
         $foto = $this->request->getFile('foto');
 
         $username = $this->request->getPost('username');
@@ -125,12 +146,12 @@ class Presensi extends BaseController
             return redirect()->to(base_url());
         }
 
-        $id_pegawai = $this->request->getPost('id_pegawai');
         $tanggal_masuk = $this->request->getPost('tanggal_masuk');
         $jam_masuk = $this->request->getPost('jam_masuk');
 
         $this->presensiModel->save([
             'id_pegawai' => $id_pegawai,
+            'id_lokasi_presensi' => $id_lokasi,
             'tanggal_masuk' =>  $tanggal_masuk,
             'jam_masuk' => $jam_masuk,
             'foto_masuk' => $nama_foto,
@@ -145,12 +166,15 @@ class Presensi extends BaseController
         $user_profile = $this->usersModel->getUserInfo(user_id());
         $presensi_masuk = $this->presensiModel->cekPresensiMasuk($user_profile->id_pegawai, date('Y-m-d'));
 
+        // Harus sudah presensi masuk hari ini
+        if (!$presensi_masuk) {
+            session()->setFlashdata('gagal', 'Anda belum melakukan presensi masuk hari ini.');
+            return redirect()->to(base_url());
+        }
+
         $latitude_pegawai = $this->request->getVar('latitude_pegawai');
         $longitude_pegawai = $this->request->getVar('longitude_pegawai');
-        $latitude_kantor = $this->request->getVar('latitude_kantor');
-        $longitude_kantor = $this->request->getVar('longitude_kantor');
-        $radius = $this->request->getVar('radius');
-        $zona_waktu = $this->request->getVar('zona_waktu');
+        $id_lokasi = $this->request->getVar('id_lokasi_presensi');
         $tanggal_keluar = $this->request->getPost('tanggal_keluar');
         $jam_keluar = $this->request->getPost('jam_keluar');
 
@@ -160,11 +184,21 @@ class Presensi extends BaseController
             return redirect()->to(base_url());
         }
 
-        // Jika lokasi presensi tidak terdeteksi, maka arahkan kembali ke halaman home
-        if (empty($latitude_kantor) || empty($longitude_kantor)) {
-            session()->setFlashdata('gagal', 'Lokasi presensi tidak valid. Mohon hubungi Admin.');
+        // Lokasi keluar dipilih pegawai (boleh berbeda dari lokasi masuk) & harus ter-assign.
+        if (empty($id_lokasi) || !$this->lokasiPegawaiModel->isAssigned($user_profile->id_pegawai, $id_lokasi)) {
+            session()->setFlashdata('gagal', 'Lokasi presensi tidak valid untuk akun Anda.');
             return redirect()->to(base_url());
         }
+
+        // Koordinat kantor diambil dari server (tidak dipercayakan ke input client)
+        $lokasi = $this->lokasiModel->getWhere(['id' => $id_lokasi])->getFirstRow();
+        if (!$lokasi) {
+            session()->setFlashdata('gagal', 'Lokasi presensi tidak ditemukan. Mohon hubungi Admin.');
+            return redirect()->to(base_url());
+        }
+        $latitude_kantor = $lokasi->latitude;
+        $longitude_kantor = $lokasi->longitude;
+        $radius = $lokasi->radius;
 
         // Cek Perbedaan Koordinat Pegawai dengan Lokasi Presensi
         $perbedaan_koordinat = $longitude_pegawai - $longitude_kantor;
@@ -188,6 +222,8 @@ class Presensi extends BaseController
             'latitude_kantor' => $latitude_kantor,
             'longitude_kantor' => $longitude_kantor,
             'radius' => $radius,
+            'id_lokasi_presensi' => $id_lokasi,
+            'nama_lokasi' => $lokasi->nama_lokasi,
             'tanggal_keluar' => $tanggal_keluar,
             'jam_keluar' => $jam_keluar,
             'data_presensi_masuk' => $presensi_masuk,
@@ -201,6 +237,15 @@ class Presensi extends BaseController
         // Validasi: harus benar-benar gambar (jpg/jpeg/png), maksimal 15 MB
         if (! $this->validate($this->aturanFoto())) {
             session()->setFlashdata('gagal', implode(' ', $this->validator->getErrors()));
+            return redirect()->to(base_url());
+        }
+
+        $user_profile = $this->usersModel->getUserInfo(user_id());
+        $id_lokasi = $this->request->getPost('id_lokasi_presensi');
+
+        // Guard: lokasi keluar harus ter-assign ke pegawai (cek sebelum menyimpan foto)
+        if (empty($id_lokasi) || !$this->lokasiPegawaiModel->isAssigned($user_profile->id_pegawai, $id_lokasi)) {
+            session()->setFlashdata('gagal', 'Lokasi presensi tidak valid untuk akun Anda.');
             return redirect()->to(base_url());
         }
 
@@ -223,6 +268,7 @@ class Presensi extends BaseController
 
         $this->presensiModel->save([
             'id' => $id_presensi,
+            'id_lokasi_keluar' => $id_lokasi,
             'tanggal_keluar' =>  $tanggal_keluar,
             'jam_keluar' => $jam_keluar,
             'foto_keluar' => $nama_foto,
@@ -239,7 +285,6 @@ class Presensi extends BaseController
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
         $data_presensi_pegawai = $this->presensiModel->getDataPresensi($user_profile->id_pegawai);
-        $data_lokasi_presensi_user = $this->lokasiModel->getWhere(['nama_lokasi' => $user_profile->lokasi_presensi])->getFirstRow();
 
         $tanggal_dari = $this->request->getGet('tanggal_dari');
         $tanggal_sampai = $this->request->getGet('tanggal_sampai');
@@ -280,7 +325,6 @@ class Presensi extends BaseController
         $data = [
             'title' => 'Rekap Presensi',
             'user_profile' => $user_profile,
-            'jam_masuk_kantor' => $data_lokasi_presensi_user->jam_masuk,
             'data_tanggal' => $data_tanggal,
             'data_presensi_pegawai' => $data_presensi,
             'currentPage' => $currentPage,

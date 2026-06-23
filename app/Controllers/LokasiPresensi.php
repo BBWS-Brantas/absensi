@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\LokasiPresensiModel;
+use App\Models\UnitOperasionalModel;
 use App\Models\UsersModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -11,16 +12,30 @@ class LokasiPresensi extends BaseController
 {
     protected $usersModel;
     protected $lokasiModel;
+    protected $unitModel;
 
     public function __construct()
     {
         $this->usersModel = new UsersModel();
         $this->lokasiModel = new LokasiPresensiModel();
+        $this->unitModel = new UnitOperasionalModel();
+    }
+
+    /**
+     * Guard lintas-unit: admin hanya boleh menyentuh lokasi di unitnya.
+     */
+    private function pastikanDalamUnit($id_unit_lokasi)
+    {
+        $id_unit_scope = current_unit_id();
+        if ($id_unit_scope !== null && (int) $id_unit_lokasi !== $id_unit_scope) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data lokasi tidak ditemukan di unit Anda');
+        }
     }
 
     public function index(): string
     {
-        $lokasiModel = $this->lokasiModel->getLokasi();
+        $id_unit = current_unit_id();
+        $lokasiModel = $this->lokasiModel->getLokasi(false, false, false, 10, $id_unit);
         $currentPage = $this->request->getVar('page_lokasi-presensi') ? $this->request->getVar('page_lokasi-presensi') : 1;
 
         $filter = [
@@ -39,7 +54,7 @@ class LokasiPresensi extends BaseController
             if ($filter['waktu'] === null) {
                 $filter['waktu'] = '';
             }
-            $lokasiModel = $this->lokasiModel->getLokasi(false, $filter);
+            $lokasiModel = $this->lokasiModel->getLokasi(false, $filter, false, 10, $id_unit);
         }
 
         $filtered = false;
@@ -75,7 +90,7 @@ class LokasiPresensi extends BaseController
             'waktu' => $this->request->getPost('waktu'),
         ];
 
-        $lokasiModel = $this->lokasiModel->getLokasi(false, $filter, true);
+        $lokasiModel = $this->lokasiModel->getLokasi(false, $filter, true, 10, current_unit_id());
         $data_lokasi = $lokasiModel['lokasi'];
 
         $spreadsheet = new Spreadsheet();
@@ -189,12 +204,15 @@ class LokasiPresensi extends BaseController
             $filter['keyword'] = '';
         }
 
+        $id_unit = current_unit_id();
+        $hasil = $this->lokasiModel->getLokasi(false, $filter, false, 10, $id_unit);
+
         $data = [
-            'lokasi' => $this->lokasiModel->getLokasi(false, $filter)['lokasi'],
+            'lokasi' => $hasil['lokasi'],
             'currentPage' => $currentPage,
-            'pager' => $this->lokasiModel->getLokasi(false, $filter)['links'],
-            'total' => $this->lokasiModel->getLokasi(false, $filter)['total'],
-            'perPage' => $this->lokasiModel->getLokasi(false, $filter)['perPage'],
+            'pager' => $hasil['links'],
+            'total' => $hasil['total'],
+            'perPage' => $hasil['perPage'],
         ];
 
         return view('lokasi_presensi/hasil-pencarian', $data);
@@ -202,7 +220,7 @@ class LokasiPresensi extends BaseController
 
     public function detail($slug): string
     {
-        $lokasi = $this->lokasiModel->getLokasi($slug)['lokasi'];
+        $lokasi = $this->lokasiModel->getLokasi($slug, false, false, 10, current_unit_id())['lokasi'];
 
         if (empty($lokasi)) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Lokasi ' . $slug . ' Tidak Ditemukan');
@@ -219,9 +237,13 @@ class LokasiPresensi extends BaseController
 
     public function add(): string
     {
+        $id_unit_scope = current_unit_id();
         $data = [
             'title' => 'Tambah Data Lokasi Presensi',
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
+            'unit' => $this->unitModel->findAll(),
+            'is_admin' => $id_unit_scope !== null,
+            'current_unit_id' => $id_unit_scope,
         ];
 
         return view('lokasi_presensi/tambah', $data);
@@ -296,9 +318,23 @@ class LokasiPresensi extends BaseController
             ],
         ];
 
+        $id_unit_scope = current_unit_id();
+        // Head wajib memilih unit; admin unitnya dipaksa server-side
+        if ($id_unit_scope === null) {
+            $rules['unit'] = [
+                'rules' => 'required|numeric',
+                'errors' => [
+                    'required' => 'mohon pilih unit operasional',
+                    'numeric' => 'mohon pilih unit operasional yang tersedia',
+                ]
+            ];
+        }
+
         if (!$this->validate($rules)) {
             return redirect()->to('/tambah-lokasi-presensi')->withInput();
         }
+
+        $id_unit = ($id_unit_scope !== null) ? $id_unit_scope : (int) $this->request->getVar('unit');
 
         $newLokasi = $this->request->getVar('nama_lokasi');
         $slug = url_title($newLokasi, '-', true);
@@ -308,6 +344,7 @@ class LokasiPresensi extends BaseController
             'slug' => $slug,
             'alamat_lokasi' => $this->request->getVar('alamat_lokasi'),
             'tipe_lokasi' => $this->request->getVar('tipe_lokasi'),
+            'id_unit' => $id_unit,
             'latitude' => $this->request->getVar('latitude'),
             'longitude' => $this->request->getVar('longitude'),
             'radius' => $this->request->getVar('radius'),
@@ -322,7 +359,8 @@ class LokasiPresensi extends BaseController
 
     public function edit($slug): string
     {
-        $lokasi = $this->lokasiModel->getLokasi($slug)['lokasi'];
+        $id_unit_scope = current_unit_id();
+        $lokasi = $this->lokasiModel->getLokasi($slug, false, false, 10, $id_unit_scope)['lokasi'];
 
         if (empty($lokasi)) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Lokasi ' . $slug . ' Tidak Ditemukan');
@@ -332,6 +370,9 @@ class LokasiPresensi extends BaseController
             'title' => 'Edit Data Lokasi Presensi ' . $lokasi['nama_lokasi'],
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
             'lokasi' => $lokasi,
+            'unit' => $this->unitModel->findAll(),
+            'is_admin' => $id_unit_scope !== null,
+            'current_unit_id' => $id_unit_scope,
         ];
 
         return view('lokasi_presensi/edit', $data);
@@ -343,6 +384,7 @@ class LokasiPresensi extends BaseController
         $slug = $this->request->getVar('slug');
 
         $lokasi_db = $this->lokasiModel->getWhere(['id' => $id])->getFirstRow();
+        $this->pastikanDalamUnit($lokasi_db->id_unit);
         $nama_lokasi_db = $lokasi_db->nama_lokasi;
         $nama_lokasi_edit = $this->request->getVar('nama_lokasi');
 
@@ -419,9 +461,23 @@ class LokasiPresensi extends BaseController
             ],
         ];
 
+        $id_unit_scope = current_unit_id();
+        // Head wajib memilih unit; admin unitnya dipaksa server-side (tidak bisa pindah unit)
+        if ($id_unit_scope === null) {
+            $rules['unit'] = [
+                'rules' => 'required|numeric',
+                'errors' => [
+                    'required' => 'mohon pilih unit operasional',
+                    'numeric' => 'mohon pilih unit operasional yang tersedia',
+                ]
+            ];
+        }
+
         if (!$this->validate($rules)) {
             return redirect()->to('/lokasi-presensi/edit/' . $slug)->withInput();
         }
+
+        $id_unit = ($id_unit_scope !== null) ? (int) $lokasi_db->id_unit : (int) $this->request->getVar('unit');
 
         $newLokasi = $this->request->getVar('nama_lokasi');
         $slug = url_title($newLokasi, '-', true);
@@ -432,6 +488,7 @@ class LokasiPresensi extends BaseController
             'slug' => $slug,
             'alamat_lokasi' => $this->request->getVar('alamat_lokasi'),
             'tipe_lokasi' => $this->request->getVar('tipe_lokasi'),
+            'id_unit' => $id_unit,
             'latitude' => $this->request->getVar('latitude'),
             'longitude' => $this->request->getVar('longitude'),
             'radius' => $this->request->getVar('radius'),
@@ -446,9 +503,26 @@ class LokasiPresensi extends BaseController
 
     public function delete($id)
     {
+        $lokasi_db = $this->lokasiModel->getWhere(['id' => $id])->getFirstRow();
+        if ($lokasi_db) {
+            $this->pastikanDalamUnit($lokasi_db->id_unit);
+        }
+
         $this->lokasiModel->delete($id);
 
         session()->setFlashdata('berhasil', 'Data Lokasi Berhasil Dihapus');
         return redirect()->to('/lokasi-presensi');
+    }
+
+    /**
+     * Endpoint AJAX: daftar lokasi untuk satu unit (untuk pemilih lokasi di form pegawai).
+     * Admin: argumen diabaikan, dipaksa ke unitnya. Head: pakai unit yang diminta.
+     */
+    public function byUnit($id_unit = null)
+    {
+        $scope = current_unit_id();
+        $unit = ($scope !== null) ? $scope : $id_unit;
+
+        return $this->response->setJSON($this->lokasiModel->getByUnit($unit));
     }
 }
