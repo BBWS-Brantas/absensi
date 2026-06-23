@@ -14,11 +14,12 @@ class PresensiModel extends Model
 
     public function __construct()
     {
+        parent::__construct();
         $this->db = \Config\Database::connect();
         $this->builder = $this->db->table('presensi');
     }
 
-    public function getDataPresensi($id_pegawai, $tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10)
+    public function getDataPresensi($id_pegawai, $tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10, $nama = false)
     {
         $pager = service('pager');
         $pager->setPath('rekap-presensi', 'rekap');
@@ -36,6 +37,13 @@ class PresensiModel extends Model
 
         if ($tanggal_dari || $tanggal_sampai) {
             $this->builder->where('tanggal_masuk BETWEEN ' . "'" . $tanggal_dari . "'" . ' AND ' . "'" . $tanggal_sampai . "'");
+        }
+
+        if (!empty($nama)) {
+            $this->builder->groupStart()
+                ->like('pegawai.nama', $nama)
+                ->orLike('pegawai.nip', $nama)
+                ->groupEnd();
         }
 
         $countQuery = clone $this->builder;
@@ -70,7 +78,7 @@ class PresensiModel extends Model
         }
     }
 
-    public function getDataPresensiHarian($tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10, $id_unit = null)
+    public function getDataPresensiHarian($tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10, $id_unit = null, $nama = false)
     {
         $pager = service('pager');
         $pager->setPath('laporan-presensi-harian', 'harian');
@@ -98,6 +106,13 @@ class PresensiModel extends Model
             $this->builder->where('presensi.tanggal_masuk = ' . "'" . $tanggal_sekarang . "'");
         }
 
+        if (!empty($nama)) {
+            $this->builder->groupStart()
+                ->like('pegawai.nama', $nama)
+                ->orLike('pegawai.nip', $nama)
+                ->groupEnd();
+        }
+
         $countQuery = clone $this->builder;
         $total = $countQuery->countAllResults();
 
@@ -116,7 +131,7 @@ class PresensiModel extends Model
         ];
     }
 
-    public function getDataPresensiBulanan($filter_bulan = false, $filter_tahun = false, $print = false, $perPage = 10, $id_unit = null)
+    public function getDataPresensiBulanan($filter_bulan = false, $filter_tahun = false, $print = false, $perPage = 10, $id_unit = null, $nama = false)
     {
         $pager = service('pager');
         $pager->setPath('laporan-presensi-bulanan', 'bulanan');
@@ -143,6 +158,13 @@ class PresensiModel extends Model
             $this->builder->where('DATE_FORMAT(presensi.tanggal_masuk, "%Y-%m") = ' . "'" . $bulan_filter . "'");
         } else {
             $this->builder->where('DATE_FORMAT(presensi.tanggal_masuk, "%Y-%m") = ' . "'" . $bulan_sekarang . "'");
+        }
+
+        if (!empty($nama)) {
+            $this->builder->groupStart()
+                ->like('pegawai.nama', $nama)
+                ->orLike('pegawai.nip', $nama)
+                ->groupEnd();
         }
 
         $countQuery = clone $this->builder;

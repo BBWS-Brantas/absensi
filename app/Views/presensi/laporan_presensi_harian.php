@@ -14,6 +14,10 @@
                                     <label for="tanggal" class="form-label">Tanggal</label>
                                     <input type="date" name="tanggal" id="tanggal" class="form-control" value="<?= $tanggal ?>">
                                 </div>
+                                <div class="col">
+                                    <label for="nama" class="form-label">Nama / NIP</label>
+                                    <input type="text" name="nama" id="nama" class="form-control" placeholder="Cari nama atau NIP..." value="<?= esc($nama) ?>">
+                                </div>
                                 <div class="col-auto">
                                     <button type="submit" class="btn btn-outline-primary">Filter</button>
                                 </div>
@@ -24,6 +28,7 @@
                         <form id="exportForm" method="POST" action="<?= base_url('/laporan-presensi-harian/excel') ?>" class="d-inline">
                             <?= csrf_field() ?>
                             <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
+                            <input type="hidden" name="nama" id="exportNama" value="<?= esc($nama) ?>">
                             <button type="submit" class="btn btn-green">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-spreadsheet" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
@@ -155,9 +160,9 @@
 </div>
 
 <script>
-    // Sinkronkan rentang tanggal dari filter halaman ke form export saat diekspor
     document.getElementById('exportForm').addEventListener('submit', function() {
         this.querySelector('[name="tanggal"]').value = document.getElementById('tanggal').value;
+        this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
     });
 </script>
 <?= $this->endSection() ?>

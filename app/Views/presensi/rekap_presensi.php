@@ -6,7 +6,7 @@
     <div class="container-xl">
         <div class="card mb-3">
             <div class="card-body">
-                <div class="row justify-content-between g-3 flex-column-reverse flex-lg-row align-items-lg-end">
+                <div class="row justify-content-between g-3 flex-column-reverse flex-lg-row align-items-lg-start">
                     <div class="col-md-6">
                         <form method="get">
                             <div class="row g-2 align-items-end">
@@ -19,6 +19,10 @@
                                         <div class="col">
                                             <label for="tanggal_sampai" class="form-label">Tanggal Akhir</label>
                                             <input type="date" name="tanggal_sampai" class="form-control" id="tanggal_sampai" value="<?= $tanggal_sampai ?>">
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="nama" class="form-label">Nama / NIP</label>
+                                            <input type="text" name="nama" id="nama" class="form-control" value="<?= esc($nama ?? '') ?>" placeholder="Cari nama atau NIP...">
                                         </div>
                                     </div>
                                 </div>
@@ -33,6 +37,7 @@
                             <?= csrf_field() ?>
                             <input type="hidden" name="tanggal_awal" value="<?= $tanggal_dari ?>">
                             <input type="hidden" name="tanggal_akhir" value="<?= $tanggal_sampai ?>">
+                            <input type="hidden" name="nama" value="<?= esc($nama ?? '') ?>">
                             <button type="submit" class="btn btn-green">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-spreadsheet" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
@@ -166,6 +171,7 @@
     document.getElementById('exportForm').addEventListener('submit', function() {
         this.querySelector('[name="tanggal_awal"]').value = document.getElementById('tanggal_dari').value;
         this.querySelector('[name="tanggal_akhir"]').value = document.getElementById('tanggal_sampai').value;
+        this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
     });
 </script>
 <?= $this->endSection() ?>
