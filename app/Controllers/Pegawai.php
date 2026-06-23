@@ -12,6 +12,7 @@ use App\Models\LokasiPresensiPegawaiModel;
 use App\Models\UnitOperasionalModel;
 use Myth\Auth\Models\PermissionModel;
 use Myth\Auth\Controllers\AuthController;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -739,6 +740,379 @@ class Pegawai extends BaseController
         $this->pegawaiModel->delete($id);
 
         session()->setFlashdata('berhasil', 'Data Pegawai Berhasil Dihapus');
+        return redirect()->to('/data-pegawai');
+    }
+
+    public function downloadTemplateImportPegawai()
+    {
+        $spreadsheet = new Spreadsheet();
+        $ws = $spreadsheet->getActiveSheet();
+
+        $isHead = current_unit_id() === null;
+
+        if ($isHead) {
+            $cols    = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+            $headers = [
+                'NAMA',
+                'JENIS KELAMIN (Laki-laki/Perempuan)',
+                'ALAMAT',
+                'NO HANDPHONE',
+                'JABATAN',
+                'USERNAME',
+                'EMAIL',
+                'UNIT OPERASIONAL',
+                'LOKASI PRESENSI (pisah koma jika lebih dari satu)',
+            ];
+            $sample = [
+                'Budi Santoso',
+                'Laki-laki',
+                'Jl. Merdeka No. 1, Jakarta',
+                '081234567890',
+                'Staff',
+                'budisant',
+                'budi@example.com',
+                'OP I',
+                'Kantor Pusat, Kantor Cabang',
+            ];
+            $lastCol = 'I';
+        } else {
+            $cols    = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+            $headers = [
+                'NAMA',
+                'JENIS KELAMIN (Laki-laki/Perempuan)',
+                'ALAMAT',
+                'NO HANDPHONE',
+                'JABATAN',
+                'USERNAME',
+                'EMAIL',
+                'LOKASI PRESENSI (pisah koma jika lebih dari satu)',
+            ];
+            $sample = [
+                'Budi Santoso',
+                'Laki-laki',
+                'Jl. Merdeka No. 1, Jakarta',
+                '081234567890',
+                'Staff',
+                'budisant',
+                'budi@example.com',
+                'Kantor Pusat, Kantor Cabang',
+            ];
+            $lastCol = 'H';
+        }
+
+        foreach ($cols as $i => $col) {
+            $ws->setCellValue($col . '1', $headers[$i]);
+        }
+
+        $ws->getStyle('A1:' . $lastCol . '1')->getFont()->setBold(true);
+        $ws->getStyle('A1:' . $lastCol . '1')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF4472C4');
+        $ws->getStyle('A1:' . $lastCol . '1')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $ws->getStyle('A1:' . $lastCol . '1')->getAlignment()
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        foreach ($cols as $i => $col) {
+            $ws->setCellValue($col . '2', $sample[$i]);
+        }
+
+        $ws->getStyle('A2:' . $lastCol . '2')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFD9E1F2');
+
+        $ws->getStyle('A1:' . $lastCol . '2')->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color'       => ['argb' => 'FF000000'],
+                ],
+            ],
+        ]);
+
+        foreach ($cols as $col) {
+            $ws->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="Template_Import_Pegawai.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit();
+    }
+
+    public function importPegawaiPreview()
+    {
+        $file = $this->request->getFile('file_import');
+
+        if (!$file || !$file->isValid()) {
+            session()->setFlashdata('gagal', 'File tidak valid atau tidak ditemukan.');
+            return redirect()->to('/data-pegawai');
+        }
+
+        if (!in_array(strtolower($file->getClientExtension()), ['xlsx', 'xls'])) {
+            session()->setFlashdata('gagal', 'Format file harus .xlsx atau .xls');
+            return redirect()->to('/data-pegawai');
+        }
+
+        try {
+            $spreadsheet = IOFactory::load($file->getTempName());
+        } catch (\Exception $e) {
+            session()->setFlashdata('gagal', 'File Excel tidak dapat dibaca.');
+            return redirect()->to('/data-pegawai');
+        }
+
+        $ws         = $spreadsheet->getActiveSheet();
+        $highestRow = $ws->getHighestRow();
+
+        $id_unit_scope = current_unit_id();
+
+        $allJabatan = [];
+        foreach ($this->jabatanModel->findAll() as $j) {
+            $allJabatan[strtolower(trim($j['jabatan']))] = $j['id'];
+        }
+
+        $allUnits = [];
+        if ($id_unit_scope === null) {
+            foreach ($this->unitModel->where('deleted_at', null)->findAll() as $u) {
+                $allUnits[strtolower(trim($u->nama))] = $u->id;
+            }
+        }
+
+        // Build lokasi lookup: strtolower(nama_lokasi) => ['id' => x, 'id_unit' => y]
+        $allLokasi = [];
+        $lokasiRows = ($id_unit_scope !== null)
+            ? $this->lokasiModel->where('id_unit', $id_unit_scope)->findAll()
+            : $this->lokasiModel->findAll();
+        foreach ($lokasiRows as $l) {
+            $allLokasi[strtolower(trim($l['nama_lokasi']))] = ['id' => $l['id'], 'id_unit' => $l['id_unit']];
+        }
+
+        $seenUsername = [];
+        $seenEmail    = [];
+        $rows         = [];
+        $validRows    = [];
+
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $nama      = trim((string) $ws->getCell('A' . $row)->getValue());
+            if ($nama === '') continue;
+
+            $jenkel    = trim((string) $ws->getCell('B' . $row)->getValue());
+            $alamat    = trim((string) $ws->getCell('C' . $row)->getValue());
+            $noHp      = trim((string) $ws->getCell('D' . $row)->getValue());
+            $jabatan   = trim((string) $ws->getCell('E' . $row)->getValue());
+            $username  = trim((string) $ws->getCell('F' . $row)->getValue());
+            $email     = trim((string) $ws->getCell('G' . $row)->getValue());
+            $unitNama  = ($id_unit_scope === null) ? trim((string) $ws->getCell('H' . $row)->getValue()) : '';
+            $lokasiRaw = ($id_unit_scope === null)
+                ? trim((string) $ws->getCell('I' . $row)->getValue())
+                : trim((string) $ws->getCell('H' . $row)->getValue());
+
+            $errors = [];
+
+            if (!in_array($jenkel, ['Laki-laki', 'Perempuan'])) {
+                $errors[] = 'Jenis kelamin harus "Laki-laki" atau "Perempuan"';
+            }
+
+            if ($alamat === '') {
+                $errors[] = 'Alamat wajib diisi';
+            }
+
+            if ($noHp === '') {
+                $errors[] = 'No handphone wajib diisi';
+            } elseif (!preg_match('/^(?:\+62|62|0)(?:\d{8,15})$/', $noHp)) {
+                $errors[] = 'No handphone tidak valid (contoh: 081234567890)';
+            }
+
+            $id_jabatan = null;
+            if ($jabatan === '') {
+                $errors[] = 'Jabatan wajib diisi';
+            } elseif (!isset($allJabatan[strtolower($jabatan)])) {
+                $errors[] = 'Jabatan "' . $jabatan . '" tidak ditemukan';
+            } else {
+                $id_jabatan = $allJabatan[strtolower($jabatan)];
+            }
+
+            if ($username === '') {
+                $errors[] = 'Username wajib diisi';
+            } elseif (!preg_match('/^[a-zA-Z0-9]{5,30}$/', $username)) {
+                $errors[] = 'Username harus 5-30 karakter alfanumerik';
+            } elseif (isset($seenUsername[strtolower($username)])) {
+                $errors[] = 'Username duplikat dalam file';
+            } elseif ($this->usersModel->where('username', $username)->countAllResults() > 0) {
+                $errors[] = 'Username sudah terdaftar di sistem';
+            }
+
+            if ($email === '') {
+                $errors[] = 'Email wajib diisi';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'Format email tidak valid';
+            } elseif (isset($seenEmail[strtolower($email)])) {
+                $errors[] = 'Email duplikat dalam file';
+            } elseif ($this->usersModel->where('email', $email)->countAllResults() > 0) {
+                $errors[] = 'Email sudah terdaftar di sistem';
+            }
+
+            $id_unit = $id_unit_scope;
+            if ($id_unit_scope === null) {
+                if ($unitNama === '') {
+                    $errors[] = 'Unit operasional wajib diisi';
+                } elseif (!isset($allUnits[strtolower($unitNama)])) {
+                    $errors[] = 'Unit operasional "' . $unitNama . '" tidak ditemukan';
+                } else {
+                    $id_unit = $allUnits[strtolower($unitNama)];
+                }
+            }
+
+            // Lokasi: required, comma-separated names, each must exist within the resolved unit
+            $lokasi_ids      = [];
+            $lokasiNamaList  = [];
+            if ($lokasiRaw === '') {
+                $errors[] = 'Lokasi presensi wajib diisi';
+            } else {
+                foreach (array_map('trim', explode(',', $lokasiRaw)) as $lokasiNama) {
+                    if ($lokasiNama === '') continue;
+                    $key = strtolower($lokasiNama);
+                    if (!isset($allLokasi[$key])) {
+                        $errors[] = 'Lokasi "' . $lokasiNama . '" tidak ditemukan';
+                    } elseif ($id_unit !== null && (int) $allLokasi[$key]['id_unit'] !== (int) $id_unit) {
+                        $errors[] = 'Lokasi "' . $lokasiNama . '" tidak termasuk dalam unit tersebut';
+                    } else {
+                        $lokasi_ids[]     = $allLokasi[$key]['id'];
+                        $lokasiNamaList[] = $lokasiNama;
+                    }
+                }
+                if (empty($lokasi_ids)) {
+                    $errors[] = 'Tidak ada lokasi presensi yang valid';
+                }
+            }
+
+            $isValid = empty($errors);
+            $rows[]  = [
+                'row'           => $row,
+                'nama'          => $nama,
+                'jenis_kelamin' => $jenkel,
+                'alamat'        => $alamat,
+                'no_handphone'  => $noHp,
+                'jabatan'       => $jabatan,
+                'username'      => $username,
+                'email'         => $email,
+                'unit_nama'     => $unitNama,
+                'lokasi_raw'    => $lokasiRaw,
+                'status'        => $isValid ? 'valid' : 'invalid',
+                'errors'        => $errors,
+            ];
+
+            if ($isValid) {
+                $seenUsername[strtolower($username)] = true;
+                $seenEmail[strtolower($email)]       = true;
+                $validRows[] = [
+                    'nama'          => $nama,
+                    'jenis_kelamin' => $jenkel,
+                    'alamat'        => $alamat,
+                    'no_handphone'  => $noHp,
+                    'id_jabatan'    => $id_jabatan,
+                    'username'      => $username,
+                    'email'         => $email,
+                    'id_unit'       => $id_unit,
+                    'lokasi_ids'    => $lokasi_ids,
+                ];
+            }
+        }
+
+        session()->set('pegawai_import_preview', $rows);
+        session()->set('pegawai_import_valid', $validRows);
+
+        $data = [
+            'title'         => 'Preview Import Data Pegawai',
+            'user_profile'  => $this->usersModel->getUserInfo(user_id()),
+            'rows'          => $rows,
+            'valid_count'   => count($validRows),
+            'invalid_count' => count($rows) - count($validRows),
+            'is_head'       => $id_unit_scope === null,
+        ];
+
+        return view('data_pegawai/import_preview', $data);
+    }
+
+    public function importPegawaiSave()
+    {
+        $validRows = session()->get('pegawai_import_valid');
+
+        if (empty($validRows)) {
+            session()->setFlashdata('warning', 'Tidak ada data valid untuk disimpan.');
+            return redirect()->to('/data-pegawai');
+        }
+
+        $password_hash = $this->usersModel->hashPassword('123456');
+        $role_pegawai  = $this->roleModel->where('name', 'pegawai')->first();
+        $role_id       = (int) ($role_pegawai['id'] ?? 3);
+
+        $inserted = 0;
+        $skipped  = 0;
+
+        foreach ($validRows as $row) {
+            if ($this->usersModel->where('username', $row['username'])->countAllResults() > 0
+                || $this->usersModel->where('email', $row['email'])->countAllResults() > 0) {
+                $skipped++;
+                continue;
+            }
+
+            $latestNip = $this->pegawaiModel->getNIPPegawai();
+            if (!empty($latestNip)) {
+                $parts    = explode('-', $latestNip);
+                $nip_baru = 'PEG-' . str_pad((int) $parts[1] + 1, 4, '0', STR_PAD_LEFT);
+            } else {
+                $nip_baru = 'PEG-0001';
+            }
+
+            $this->pegawaiModel->save([
+                'nip'           => $nip_baru,
+                'nama'          => $row['nama'],
+                'jenis_kelamin' => $row['jenis_kelamin'],
+                'alamat'        => $row['alamat'],
+                'no_handphone'  => $row['no_handphone'],
+                'id_jabatan'    => $row['id_jabatan'],
+                'id_unit'       => $row['id_unit'],
+                'foto'          => 'default.jpg',
+            ]);
+
+            $id_pegawai = $this->pegawaiModel->insertID();
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+            $this->lokasiPegawaiModel->syncLokasi($id_pegawai, $row['lokasi_ids']);
+            $db->transComplete();
+
+            $this->usersModel->save([
+                'id_pegawai'    => $id_pegawai,
+                'email'         => $row['email'],
+                'username'      => $row['username'],
+                'password_hash' => $password_hash,
+                'active'        => 1,
+                'activate_hash' => null,
+            ]);
+
+            $user_id = $this->usersModel->insertID();
+
+            $this->usersRoleModel->save([
+                'group_id' => $role_id,
+                'user_id'  => $user_id,
+            ]);
+
+            $inserted++;
+        }
+
+        session()->remove('pegawai_import_preview');
+        session()->remove('pegawai_import_valid');
+
+        $msg = $inserted . ' pegawai berhasil ditambahkan';
+        if ($skipped > 0) {
+            $msg .= ', ' . $skipped . ' dilewati karena username/email sudah terdaftar';
+        }
+
+        session()->setFlashdata('berhasil', $msg);
         return redirect()->to('/data-pegawai');
     }
 }
