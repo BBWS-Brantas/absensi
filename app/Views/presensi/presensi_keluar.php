@@ -124,17 +124,11 @@
             const pad = Math.round(w * 0.02);
             ctx.font = 'bold ' + fontSize + 'px Arial';
             ctx.textAlign = 'right';
-            ctx.shadowColor = 'rgba(0,0,0,0.9)';
-            ctx.shadowBlur = 6;
-            ctx.shadowOffsetX = 1;
-            ctx.shadowOffsetY = 1;
             ctx.fillStyle = '#ffffff';
             const startY = h - textLines.length * lineH - pad;
             textLines.forEach(function(line, i) {
                 ctx.fillText(line, w - pad, startY + (i + 1) * lineH - fontSize * 0.3);
             });
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
             ctx.textAlign = 'left';
         }
 
