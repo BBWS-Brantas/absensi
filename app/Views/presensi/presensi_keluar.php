@@ -80,30 +80,74 @@
             if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         }
 
-        captureBtn.addEventListener('click', function () {
+        async function drawWatermark(ctx, w, h, lat, lon) {
+            // Indonesian date: "24 Juni 2026"
+            const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            const now = new Date();
+            const dateText = now.getDate() + ' ' + bulan[now.getMonth()] + ' ' + now.getFullYear();
+
+            // Coordinates: -8,0599S +111,8857E style
+            const latAbs = Math.abs(lat).toFixed(4).replace('.', ',');
+            const lonVal = lon.toFixed(4).replace('.', ',');
+            const coordText = (lat < 0 ? '-' : '') + latAbs + (lat < 0 ? 'S' : 'N') + '  ' +
+                              (lon >= 0 ? '+' : '') + lonVal + (lon >= 0 ? 'E' : 'W');
+
+            // Reverse geocode address via Nominatim
+            const addrLines = [];
+            try {
+                const resp = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=id');
+                const data = await resp.json();
+                const a = data.address || {};
+                const road    = a.road || a.pedestrian || a.footway || '';
+                const village = a.village || a.hamlet || a.suburb || a.neighbourhood || '';
+                const county  = a.county || '';
+                const city    = a.city || a.town || a.municipality || '';
+                const state   = a.state || '';
+                [road, village, county, city, state].forEach(function(v) { if (v) addrLines.push(v); });
+            } catch (e) {}
+
+            // Logo — top-right
+            const logo = new Image();
+            logo.src = '<?= base_url("assets/img/company/logo.png") ?>';
+            await new Promise(function(r) { logo.onload = r; logo.onerror = r; });
+            if (logo.naturalWidth > 0) {
+                const lh = Math.round(h * 0.09);
+                const lw = Math.round(logo.naturalWidth * (lh / logo.naturalHeight));
+                const lp = Math.round(w * 0.02);
+                ctx.drawImage(logo, w - lw - lp, lp, lw, lh);
+            }
+
+            // Text — bottom-right, right-aligned, white with drop shadow
+            const textLines = [dateText, coordText].concat(addrLines);
+            const fontSize = Math.max(14, Math.round(w * 0.028));
+            const lineH = fontSize * 1.6;
+            const pad = Math.round(w * 0.02);
+            ctx.font = 'bold ' + fontSize + 'px Arial';
+            ctx.textAlign = 'right';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
+            ctx.fillStyle = '#ffffff';
+            const startY = h - textLines.length * lineH - pad;
+            textLines.forEach(function(line, i) {
+                ctx.fillText(line, w - pad, startY + (i + 1) * lineH - fontSize * 0.3);
+            });
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+        }
+
+        captureBtn.addEventListener('click', async function () {
+            captureBtn.disabled = true;
+            captureBtn.textContent = 'Memproses...';
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Overlay lat/lon on the captured photo
-            const lines = [
-                'Lat: ' + latitude_pegawai.toFixed(6),
-                'Lon: ' + longitude_pegawai.toFixed(6),
-                new Date().toLocaleString('id-ID'),
-            ];
-            const fontSize = Math.max(14, Math.round(canvas.width * 0.025));
-            ctx.font = 'bold ' + fontSize + 'px Arial';
-            const pad = 8, lh = fontSize * 1.5;
-            const boxW = Math.max(...lines.map(l => ctx.measureText(l).width)) + pad * 2;
-            const boxH = lines.length * lh + pad * 2;
-            const bx = pad, by = canvas.height - boxH - pad;
-            ctx.fillStyle = 'rgba(0,0,0,0.55)';
-            ctx.fillRect(bx, by, boxW, boxH);
-            ctx.fillStyle = '#ffffff';
-            lines.forEach(function(line, i) {
-                ctx.fillText(line, bx + pad, by + pad + (i + 1) * lh - fontSize * 0.2);
-            });
+            await drawWatermark(ctx, canvas.width, canvas.height, latitude_pegawai, longitude_pegawai);
 
             canvas.toBlob(function (blob) {
                 const file = new File([blob], 'presensi.jpg', { type: 'image/jpeg' });
@@ -114,6 +158,8 @@
                 preview.classList.remove('d-none');
                 video.classList.add('d-none');
                 captureBtn.classList.add('d-none');
+                captureBtn.disabled = false;
+                captureBtn.textContent = 'Ambil Foto';
                 retakeBtn.classList.remove('d-none');
                 submitBtn.classList.remove('d-none');
                 stopCamera();
