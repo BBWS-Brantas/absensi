@@ -77,7 +77,28 @@
         captureBtn.addEventListener('click', function () {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Overlay lat/lon on the captured photo
+            const lines = [
+                'Lat: ' + latitude_pegawai.toFixed(6),
+                'Lon: ' + longitude_pegawai.toFixed(6),
+                new Date().toLocaleString('id-ID'),
+            ];
+            const fontSize = Math.max(14, Math.round(canvas.width * 0.025));
+            ctx.font = 'bold ' + fontSize + 'px Arial';
+            const pad = 8, lh = fontSize * 1.5;
+            const boxW = Math.max(...lines.map(l => ctx.measureText(l).width)) + pad * 2;
+            const boxH = lines.length * lh + pad * 2;
+            const bx = pad, by = canvas.height - boxH - pad;
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(bx, by, boxW, boxH);
+            ctx.fillStyle = '#ffffff';
+            lines.forEach(function(line, i) {
+                ctx.fillText(line, bx + pad, by + pad + (i + 1) * lh - fontSize * 0.2);
+            });
+
             canvas.toBlob(function (blob) {
                 const file = new File([blob], 'presensi.jpg', { type: 'image/jpeg' });
                 const dt = new DataTransfer();
