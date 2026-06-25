@@ -162,7 +162,7 @@
                                                 <?php if ($data->jam_keluar === '00:00:00' || $data->foto_keluar === '-') : ?>
                                                     <spam class="text-center">-</spam>
                                                 <?php else : ?>
-                                                    <span class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data->foto_keluar) ?>" target="_blank">Lihat Foto</a></span>
+                                                    <span class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data->foto_keluar) ?>" target="_blank">Foto</a></span>
                                                 <?php endif; ?>
                                             </td>
                                             <?php if ($data->tanggal_keluar === '0000-00-00') : ?>
