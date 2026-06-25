@@ -136,7 +136,7 @@
                                                 <?php if ($data_presensi->jam_keluar === '00:00:00' || $data_presensi->foto_keluar === '-') : ?>
                                                     <span class="text-center">-</span>
                                                 <?php else : ?>
-                                                    <span class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data_presensi->foto_keluar) ?>" target="_blank">Lihat Foto</a></span>
+                                                    <span class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data_presensi->foto_keluar) ?>" target="_blank">Foto</a></span>
                                                 <?php endif; ?>
                                             </td>
                                             <?php if ($data_presensi->tanggal_keluar === '0000-00-00') : ?>
