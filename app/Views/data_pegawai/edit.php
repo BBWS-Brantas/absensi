@@ -144,7 +144,7 @@
                                         <option value="">---Pilih Unit Operasional---</option>
                                         <?php if (!empty($unit)) : ?>
                                             <?php foreach ($unit as $unit_option) : ?>
-                                                <option value="<?= $unit_option['id'] ?>" <?= (string) old('unit', $data_pegawai->id_unit) === (string) $unit_option['id'] ? 'selected' : '' ?>><?= esc($unit_option['nama']) ?></option>
+                                                <option value="<?= $unit_option->id ?>" <?= (string) old('unit', $data_pegawai->id_unit) === (string) $unit_option->id ? 'selected' : '' ?>><?= esc($unit_option->nama) ?></option>
                                             <?php endforeach; ?>
                                         <?php else : ?>
                                             <option value="">Tidak ada pilihan unit operasional</option>

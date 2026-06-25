@@ -57,7 +57,7 @@
                                         <option value="">---Pilih Unit Operasional---</option>
                                         <?php if (!empty($unit)) : ?>
                                             <?php foreach ($unit as $unit_option) : ?>
-                                                <option value="<?= $unit_option['id'] ?>" <?= (string) old('unit', $lokasi['id_unit']) === (string) $unit_option['id'] ? 'selected' : '' ?>><?= esc($unit_option['nama']) ?></option>
+                                                <option value="<?= $unit_option->id ?>" <?= (string) old('unit', $lokasi['id_unit']) === (string) $unit_option->id ? 'selected' : '' ?>><?= esc($unit_option->nama) ?></option>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </select>

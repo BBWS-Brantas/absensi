@@ -92,8 +92,8 @@
                                     <?php
                                     $nama_unit_admin = '';
                                     foreach ($unit as $u) {
-                                        if ((string) $u['id'] === (string) $current_unit_id) {
-                                            $nama_unit_admin = $u['nama'];
+                                        if ((string) $u->id === (string) $current_unit_id) {
+                                            $nama_unit_admin = $u->nama;
                                             break;
                                         }
                                     }
@@ -108,7 +108,7 @@
                                         <option value="">---Pilih Unit Operasional---</option>
                                         <?php if (!empty($unit)) : ?>
                                             <?php foreach ($unit as $unit_option) : ?>
-                                                <option value="<?= $unit_option['id'] ?>" <?= (string) old('unit') === (string) $unit_option['id'] ? 'selected' : '' ?>><?= esc($unit_option['nama']) ?></option>
+                                                <option value="<?= $unit_option->id ?>" <?= (string) old('unit') === (string) $unit_option->id ? 'selected' : '' ?>><?= esc($unit_option->nama) ?></option>
                                             <?php endforeach; ?>
                                         <?php else : ?>
                                             <option value="">Tidak ada pilihan unit operasional</option>
