@@ -18,6 +18,17 @@
                                     <label for="nama" class="form-label">Nama / NIP</label>
                                     <input type="text" name="nama" id="nama" class="form-control" placeholder="Cari nama atau NIP..." value="<?= esc($nama) ?>">
                                 </div>
+                                <?php if (in_groups('head')) : ?>
+                                <div class="col">
+                                    <label for="id_unit" class="form-label">Unit Operasional</label>
+                                    <select name="id_unit" id="id_unit" class="form-select">
+                                        <option value="">Semua Unit</option>
+                                        <?php foreach ($daftar_unit as $unit) : ?>
+                                            <option value="<?= $unit->id ?>" <?= ($filter_unit == $unit->id) ? 'selected' : '' ?>><?= esc($unit->nama) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <?php endif; ?>
                                 <div class="col-auto">
                                     <button type="submit" class="btn btn-outline-primary">Filter</button>
                                 </div>
@@ -29,6 +40,7 @@
                             <?= csrf_field() ?>
                             <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
                             <input type="hidden" name="nama" id="exportNama" value="<?= esc($nama) ?>">
+                            <input type="hidden" name="id_unit" id="exportIdUnit" value="<?= esc($filter_unit) ?>">
                             <button type="submit" class="btn btn-green">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-spreadsheet" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none" />
@@ -69,11 +81,10 @@
                                     <th>No</th>
                                     <th>ID TPM</th>
                                     <th>Nama TPM</th>
+                                    <th>Unit Operasional</th>
                                     <th>Tanggal</th>
-                                    <th>Jam Masuk</th>
-                                    <th>Foto Masuk</th>
-                                    <th>Jam Pulang</th>
-                                    <th>Foto Pulang</th>
+                                    <th>Masuk</th>
+                                    <th>Pulang</th>
                                     <th>Total Jam Kerja</th>
                                     <th>Total Keterlambatan</th>
                                     <th>Keterangan Kegiatan</th>
@@ -119,15 +130,20 @@
                                             <td class="text-center"><?= $nomor++ ?></td>
                                             <td class="text-center"><?= $data->nip ?></td>
                                             <td><?= $data->nama ?></td>
+                                            <td class="text-center"><?= esc($data->nama_unit ?? '-') ?></td>
                                             <td class="text-center"><?= date('d F Y', strtotime($data->tanggal_masuk)) ?></td>
-                                            <td class="text-center"><?= $data->jam_masuk ?></td>
-                                            <td class="text-center"><a href="<?= base_url('assets/img/foto_presensi/masuk/' . $data->foto_masuk) ?>" target="_blank">Lihat Foto</a></td>
-                                            <td class="text-center"><?= $data->jam_keluar ?></td>
-                                            <?php if ($data->jam_keluar === '00:00:00' || $data->foto_keluar === '-') : ?>
-                                                <td class="text-center">-</td>
-                                            <?php else : ?>
-                                                <td class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data->foto_keluar) ?>" target="_blank">Lihat Foto</a></td>
-                                            <?php endif; ?>
+                                            <td class="text-center">
+                                                <?= $data->jam_masuk ?> <br/>
+                                                <a href="<?= base_url('assets/img/foto_presensi/masuk/' . $data->foto_masuk) ?>" target="_blank">Foto</a>
+                                            </td>
+                                            <td class="text-center">
+                                                <?= $data->jam_keluar ?> <br/>
+                                                <?php if ($data->jam_keluar === '00:00:00' || $data->foto_keluar === '-') : ?>
+                                                    <spam class="text-center">-</spam>
+                                                <?php else : ?>
+                                                    <span class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data->foto_keluar) ?>" target="_blank">Lihat Foto</a></span>
+                                                <?php endif; ?>
+                                            </td>
                                             <?php if ($data->tanggal_keluar === '0000-00-00') : ?>
                                                 <td class="text-center">0 Jam 0 Menit</td>
                                             <?php else : ?>
@@ -143,7 +159,7 @@
                                     <?php endforeach; ?>
                                 <?php else : ?>
                                     <tr class="text-center">
-                                        <td colspan="11">Belum ada data presensi.</td>
+                                        <td colspan="12">Belum ada data presensi.</td>
                                     </tr>
                                 <?php endif; ?>
                             </table>
@@ -163,6 +179,8 @@
     document.getElementById('exportForm').addEventListener('submit', function() {
         this.querySelector('[name="tanggal"]').value = document.getElementById('tanggal').value;
         this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
+        var unitEl = document.getElementById('id_unit');
+        if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;
     });
 </script>
 <?= $this->endSection() ?>

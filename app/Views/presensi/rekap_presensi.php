@@ -6,7 +6,7 @@
     <div class="container-xl">
         <div class="card mb-3">
             <div class="card-body">
-                <div class="row justify-content-between g-3 flex-column-reverse flex-lg-row align-items-lg-start">
+                <div class="row justify-content-between g-3 flex-column-reverse flex-lg-row align-items-lg-end">
                     <div class="col-md-6">
                         <form method="get">
                             <div class="row g-2 align-items-end">
@@ -20,10 +20,10 @@
                                             <label for="tanggal_sampai" class="form-label">Tanggal Akhir</label>
                                             <input type="date" name="tanggal_sampai" class="form-control" id="tanggal_sampai" value="<?= $tanggal_sampai ?>">
                                         </div>
-                                        <div class="col-12">
+                                        <!-- <div class="col-12">
                                             <label for="nama" class="form-label">Nama / NIP</label>
                                             <input type="text" name="nama" id="nama" class="form-control" value="<?= esc($nama ?? '') ?>" placeholder="Cari nama atau NIP...">
-                                        </div>
+                                        </div> -->
                                     </div>
                                 </div>
                                 <div class="col-auto">
@@ -77,11 +77,10 @@
                                     <th>No</th>
                                     <th>ID TPM</th>
                                     <th>Nama TPM</th>
+                                    <th>Unit Operasional</th>
                                     <th>Tanggal</th>
-                                    <th>Jam Masuk</th>
-                                    <th>Foto Masuk</th>
-                                    <th>Jam Pulang</th>
-                                    <th>Foto Pulang</th>
+                                    <th>Masuk</th>
+                                    <th>Pulang</th>
                                     <th>Total Jam Kerja</th>
                                     <th>Total Keterlambatan</th>
                                     <th>Keterangan Kegiatan</th>
@@ -126,15 +125,20 @@
                                             <td class="text-center"><?= $nomor++ ?></td>
                                             <td class="text-center"><?= $data_presensi->nip ?></td>
                                             <td><?= $data_presensi->nama ?></td>
-                                            <td class="text-center"><?= date('d F Y', strtotime($data_presensi->tanggal_masuk)) ?></td>
-                                            <td class="text-center"><?= $data_presensi->jam_masuk ?></td>
-                                            <td class="text-center"><a href="<?= base_url('assets/img/foto_presensi/masuk/' . $data_presensi->foto_masuk) ?>" target="_blank">Lihat Foto</a></td>
-                                            <td class="text-center"><?= $data_presensi->jam_keluar ?></td>
-                                            <?php if ($data_presensi->jam_keluar === '00:00:00' || $data_presensi->foto_keluar === '-') : ?>
-                                                <td class="text-center">-</td>
-                                            <?php else : ?>
-                                                <td class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data_presensi->foto_keluar) ?>" target="_blank">Lihat Foto</a></td>
-                                            <?php endif; ?>
+                                            <td class="text-center"><?= esc($data_presensi->nama_unit ?? '-') ?></td>
+                                            <td class="text-center"><?= date('d F Y', strtotime($data_presensi->tanggal_masuk)) ?> </td>
+                                            <td class="text-center">
+                                                <?= $data_presensi->jam_masuk ?><br/>
+                                                <a href="<?= base_url('assets/img/foto_presensi/masuk/' . $data_presensi->foto_masuk) ?>" target="_blank">Foto</a>
+                                            </td>
+                                            <td class="text-center">
+                                                <?= $data_presensi->jam_keluar ?> <br/>
+                                                <?php if ($data_presensi->jam_keluar === '00:00:00' || $data_presensi->foto_keluar === '-') : ?>
+                                                    <span class="text-center">-</span>
+                                                <?php else : ?>
+                                                    <span class="text-center"><a href="<?= base_url('assets/img/foto_presensi/keluar/' . $data_presensi->foto_keluar) ?>" target="_blank">Lihat Foto</a></span>
+                                                <?php endif; ?>
+                                            </td>
                                             <?php if ($data_presensi->tanggal_keluar === '0000-00-00') : ?>
                                                 <td class="text-center">0 Jam 0 Menit</td>
                                             <?php else : ?>

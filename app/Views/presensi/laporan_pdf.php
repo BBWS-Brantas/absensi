@@ -73,6 +73,7 @@
                 <th>No</th>
                 <th>ID TPM</th>
                 <th>Nama TPM</th>
+                <th>Unit Operasional</th>
                 <th>Tanggal</th>
                 <th>Jam Masuk</th>
                 <th>Foto Masuk</th>
@@ -90,6 +91,7 @@
                         <td><?= $r['no'] ?></td>
                         <td><?= esc($r['nip']) ?></td>
                         <td class="ket"><?= esc($r['nama']) ?></td>
+                        <td class="ket"><?= esc($r['nama_unit']) ?></td>
                         <td><?= esc($r['tanggal']) ?></td>
                         <td><?= esc($r['jam_masuk']) ?></td>
                         <td><?= $r['foto_masuk'] ? '<img class="foto" src="' . $r['foto_masuk'] . '">' : '-' ?></td>
@@ -102,7 +104,7 @@
                 <?php endforeach; ?>
             <?php else : ?>
                 <tr>
-                    <td colspan="11">Tidak ada data presensi.</td>
+                    <td colspan="12">Tidak ada data presensi.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
