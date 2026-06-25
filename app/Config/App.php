@@ -176,4 +176,13 @@ class App extends BaseConfig
      * @see http://www.w3.org/TR/CSP/
      */
     public bool $CSPEnabled = false;
+
+    // myth/auth v1.2.x reads these from Config\App, but CI4.3+ moved them to Config\Cookie.
+    // Keeping them here prevents "Undefined property: Config\App $cookieDomain" on login.
+    public string $cookiePrefix   = '';
+    public string $cookieDomain   = '';
+    public string $cookiePath     = '/';
+    public bool   $cookieSecure   = false;
+    public bool   $cookieHTTPOnly = true;
+    public string $cookieSameSite = 'Lax';
 }
