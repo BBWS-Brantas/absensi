@@ -8,6 +8,7 @@ use App\Models\PegawaiModel;
 use App\Models\PresensiModel;
 use App\Models\LokasiPresensiModel;
 use App\Models\LokasiPresensiPegawaiModel;
+use App\Models\UnitOperasionalModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -18,6 +19,7 @@ class Presensi extends BaseController
     protected $lokasiPegawaiModel;
     protected $presensiModel;
     protected $pegawaiModel;
+    protected $unitModel;
 
     public function __construct()
     {
@@ -26,6 +28,7 @@ class Presensi extends BaseController
         $this->lokasiPegawaiModel = new LokasiPresensiPegawaiModel();
         $this->presensiModel = new PresensiModel();
         $this->pegawaiModel = new PegawaiModel();
+        $this->unitModel = new UnitOperasionalModel();
     }
 
     /**
@@ -96,7 +99,7 @@ class Presensi extends BaseController
         $meter = $km * 1000;
 
         if ($meter > $radius) {
-            session()->setFlashdata('gagal', 'Anda berada di luar area kantor');
+            session()->setFlashdata('gagal', 'Anda berada di luar area kerja');
             return redirect()->to(base_url());
         }
 
@@ -210,7 +213,7 @@ class Presensi extends BaseController
         $meter = $km * 1000;
 
         if ($meter > $radius) {
-            session()->setFlashdata('gagal', 'Anda berada di luar area kantor');
+            session()->setFlashdata('gagal', 'Anda berada di luar area kerja');
             return redirect()->to(base_url());
         }
 
@@ -377,13 +380,15 @@ class Presensi extends BaseController
         $worksheet->setCellValue('F3', $data_pegawai->nama);
         $worksheet->setCellValue('F4', $data_pegawai->nip);
         $worksheet->setCellValue('A6', '#');
-        $worksheet->setCellValue('B6', 'TANGGAL MASUK');
-        $worksheet->setCellValue('C6', 'JAM MASUK');
-        $worksheet->setCellValue('D6', 'JAM PULANG');
-        $worksheet->setCellValue('E6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('F6', 'TOTAL JAM KETERLAMBATAN');
+        $worksheet->setCellValue('B6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('C6', 'TANGGAL MASUK');
+        $worksheet->setCellValue('D6', 'JAM MASUK');
+        $worksheet->setCellValue('E6', 'JAM PULANG');
+        $worksheet->setCellValue('F6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('G6', 'TOTAL JAM KETERLAMBATAN');
+        $worksheet->setCellValue('H6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:F1');
+        $worksheet->mergeCells('A1:H1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -442,20 +447,22 @@ class Presensi extends BaseController
                 }
 
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
-                $worksheet->setCellValue('B' . $data_start_row, $data->tanggal_masuk);
-                $worksheet->setCellValue('C' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('D' . $data_start_row, $data->jam_keluar);
-                $worksheet->setCellValue('E' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('F' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('B' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('C' . $data_start_row, $data->tanggal_masuk);
+                $worksheet->setCellValue('D' . $data_start_row, $data->jam_masuk);
+                $worksheet->setCellValue('E' . $data_start_row, $data->jam_keluar);
+                $worksheet->setCellValue('F' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('G' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('H' . $data_start_row, !empty($data->keterangan) && $data->keterangan !== '-' ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':F' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':H' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':F' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':F' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':H' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':H' . $data_start_row)->applyFromArray($styleArray);
         }
 
         $worksheet->getColumnDimension('A')->setAutoSize(true);
@@ -464,12 +471,14 @@ class Presensi extends BaseController
         $worksheet->getColumnDimension('D')->setAutoSize(true);
         $worksheet->getColumnDimension('E')->setAutoSize(true);
         $worksheet->getColumnDimension('F')->setAutoSize(true);
+        $worksheet->getColumnDimension('G')->setAutoSize(true);
+        $worksheet->getColumnDimension('H')->setAutoSize(true);
 
         $worksheet->getStyle('A3:C4')->applyFromArray($styleArray);
         $worksheet->getStyle('E3:F4')->applyFromArray($styleArray);
-        $worksheet->getStyle('A6:F6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:H6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
-        $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $worksheet->getStyle('A1:H1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setARGB('ffff00');
@@ -526,6 +535,7 @@ class Presensi extends BaseController
 
             $rows[] = [
                 'no'                  => $nomor++,
+                'nama_unit'           => $data->nama_unit ?? '-',
                 'tanggal'             => date('d F Y', strtotime($data->tanggal_masuk)),
                 'jam_masuk'           => $data->jam_masuk,
                 'jam_keluar'          => $belum_keluar ? '-' : $data->jam_keluar,
@@ -604,6 +614,7 @@ class Presensi extends BaseController
                 'no'                  => $nomor++,
                 'nip'                 => $data->nip,
                 'nama'                => $data->nama,
+                'nama_unit'           => $data->nama_unit ?? '-',
                 'tanggal'             => date('d F Y', strtotime($data->tanggal_masuk)),
                 'jam_masuk'           => $data->jam_masuk,
                 'jam_keluar'          => $belum_keluar ? '-' : $data->jam_keluar,
@@ -625,8 +636,12 @@ class Presensi extends BaseController
             $tanggal = date('Y-m-d');
         }
         $nama = trim((string) $this->request->getPost('nama'));
+        $post_unit = $this->request->getPost('id_unit');
+        $id_unit = (in_groups('head') && $post_unit !== null && $post_unit !== '')
+            ? (int) $post_unit
+            : current_unit_id();
 
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, current_unit_id(), $nama)['laporan-harian'];
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama)['laporan-harian'];
 
         $html = view('presensi/laporan_pdf', [
             'judul' => 'Laporan Presensi Harian',
@@ -657,8 +672,12 @@ class Presensi extends BaseController
             $filter_bulan = date('m');
         }
         $nama = trim((string) $this->request->getPost('nama'));
+        $post_unit = $this->request->getPost('id_unit');
+        $id_unit_pdf = (in_groups('head') && $post_unit !== null && $post_unit !== '')
+            ? (int) $post_unit
+            : current_unit_id();
 
-        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, current_unit_id(), $nama)['laporan-bulanan'];
+        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_pdf, $nama)['laporan-bulanan'];
 
         $html = view('presensi/laporan_pdf', [
             'judul' => 'Laporan Presensi Bulanan',
@@ -692,7 +711,13 @@ class Presensi extends BaseController
         }
         $nama = trim((string) $this->request->getGet('nama'));
 
-        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, false, 10, current_unit_id(), $nama);
+        // Head can optionally filter by unit; admin is always scoped to own unit
+        $filter_unit = $this->request->getGet('id_unit');
+        $id_unit = (in_groups('head') && $filter_unit !== null && $filter_unit !== '')
+            ? (int) $filter_unit
+            : current_unit_id();
+
+        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, false, 10, $id_unit, $nama);
         $data_tanggal = date('d F Y', strtotime($tanggal));
 
         $data_presensi = $data_presensi_pegawai['laporan-harian'];
@@ -701,16 +726,18 @@ class Presensi extends BaseController
         $perPage = $data_presensi_pegawai['perPage'];
 
         $data = [
-            'title' => 'Laporan Presensi Harian',
+            'title'        => 'Laporan Presensi Harian',
             'user_profile' => $user_profile,
             'data_tanggal' => $data_tanggal,
             'data_presensi' => $data_presensi,
-            'currentPage' => $currentPage,
-            'pager' => $pager,
-            'total' => $total,
-            'perPage' => $perPage,
-            'tanggal' => $tanggal,
-            'nama' => $nama,
+            'currentPage'  => $currentPage,
+            'pager'        => $pager,
+            'total'        => $total,
+            'perPage'      => $perPage,
+            'tanggal'      => $tanggal,
+            'nama'         => $nama,
+            'daftar_unit'  => $this->unitModel->findAll(),
+            'filter_unit'  => $filter_unit ?? '',
         ];
 
         return view('presensi/laporan_presensi_harian', $data);
@@ -723,7 +750,11 @@ class Presensi extends BaseController
             $tanggal = date('Y-m-d');
         }
         $nama = trim((string) $this->request->getPost('nama'));
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, current_unit_id(), $nama)['laporan-harian'];
+        $post_unit = $this->request->getPost('id_unit');
+        $id_unit = (in_groups('head') && $post_unit !== null && $post_unit !== '')
+            ? (int) $post_unit
+            : current_unit_id();
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama)['laporan-harian'];
 
         $spreadsheet = new Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
@@ -734,13 +765,15 @@ class Presensi extends BaseController
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NIP');
         $worksheet->setCellValue('C6', 'NAMA TPM');
-        $worksheet->setCellValue('D6', 'TANGGAL MASUK');
-        $worksheet->setCellValue('E6', 'JAM MASUK');
-        $worksheet->setCellValue('F6', 'JAM PULANG');
-        $worksheet->setCellValue('G6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('H6', 'TOTAL JAM KETERLAMBATAN');
+        $worksheet->setCellValue('D6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('E6', 'TANGGAL MASUK');
+        $worksheet->setCellValue('F6', 'JAM MASUK');
+        $worksheet->setCellValue('G6', 'JAM PULANG');
+        $worksheet->setCellValue('H6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('I6', 'TOTAL JAM KETERLAMBATAN');
+        $worksheet->setCellValue('J6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:H1');
+        $worksheet->mergeCells('A1:J1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -801,20 +834,22 @@ class Presensi extends BaseController
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
                 $worksheet->setCellValue('B' . $data_start_row, $data->nip);
                 $worksheet->setCellValue('C' . $data_start_row, $data->nama);
-                $worksheet->setCellValue('D' . $data_start_row, $data->tanggal_masuk);
-                $worksheet->setCellValue('E' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('F' . $data_start_row, $data->jam_keluar);
-                $worksheet->setCellValue('G' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('H' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('D' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('E' . $data_start_row, $data->tanggal_masuk);
+                $worksheet->setCellValue('F' . $data_start_row, $data->jam_masuk);
+                $worksheet->setCellValue('G' . $data_start_row, $data->jam_keluar);
+                $worksheet->setCellValue('H' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('I' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('J' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':H' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':H' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':H' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':J' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
         }
 
         $worksheet->getColumnDimension('A')->setAutoSize(true);
@@ -825,9 +860,11 @@ class Presensi extends BaseController
         $worksheet->getColumnDimension('F')->setAutoSize(true);
         $worksheet->getColumnDimension('G')->setAutoSize(true);
         $worksheet->getColumnDimension('H')->setAutoSize(true);
+        $worksheet->getColumnDimension('I')->setAutoSize(true);
+        $worksheet->getColumnDimension('J')->setAutoSize(true);
 
         $worksheet->getStyle('A3:C3')->applyFromArray($styleArray);
-        $worksheet->getStyle('A6:H6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:J6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
@@ -851,8 +888,14 @@ class Presensi extends BaseController
         $currentPage = $this->request->getVar('page_bulanan') ? $this->request->getVar('page_bulanan') : 1;
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
-        $id_unit = current_unit_id();
         $nama = trim((string) $this->request->getGet('nama'));
+
+        // Head can optionally filter by unit; admin is always scoped to own unit
+        $filter_unit = $this->request->getGet('id_unit');
+        $id_unit = (in_groups('head') && $filter_unit !== null && $filter_unit !== '')
+            ? (int) $filter_unit
+            : current_unit_id();
+
         $data_presensi_pegawai = $this->presensiModel->getDataPresensiBulanan(false, false, false, 10, $id_unit, $nama);
 
         $filter_bulan = $this->request->getGet('filter_bulan');
@@ -893,18 +936,20 @@ class Presensi extends BaseController
         }
 
         $data = [
-            'title' => 'Laporan Presensi Bulanan',
+            'title'        => 'Laporan Presensi Bulanan',
             'user_profile' => $user_profile,
-            'tahun_mulai' => $tahun_mulai,
-            'data_bulan' => $data_bulan,
+            'tahun_mulai'  => $tahun_mulai,
+            'data_bulan'   => $data_bulan,
             'data_presensi' => $data_presensi,
-            'currentPage' => $currentPage,
-            'pager' => $pager,
-            'total' => $total,
-            'perPage' => $perPage,
+            'currentPage'  => $currentPage,
+            'pager'        => $pager,
+            'total'        => $total,
+            'perPage'      => $perPage,
             'filter_bulan' => $filter_bulan,
             'filter_tahun' => $filter_tahun,
-            'nama' => $nama,
+            'nama'         => $nama,
+            'daftar_unit'  => $this->unitModel->findAll(),
+            'filter_unit'  => $filter_unit ?? '',
         ];
 
         return view('presensi/laporan_presensi_bulanan', $data);
@@ -921,7 +966,11 @@ class Presensi extends BaseController
             $filter_bulan = date('m');
         }
         $nama = trim((string) $this->request->getPost('nama'));
-        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, current_unit_id(), $nama)['laporan-bulanan'];
+        $post_unit = $this->request->getPost('id_unit');
+        $id_unit_excel = (in_groups('head') && $post_unit !== null && $post_unit !== '')
+            ? (int) $post_unit
+            : current_unit_id();
+        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_excel, $nama)['laporan-bulanan'];
 
         $spreadsheet = new Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
@@ -934,13 +983,15 @@ class Presensi extends BaseController
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NIP');
         $worksheet->setCellValue('C6', 'NAMA TPM');
-        $worksheet->setCellValue('D6', 'TANGGAL MASUK');
-        $worksheet->setCellValue('E6', 'JAM MASUK');
-        $worksheet->setCellValue('F6', 'JAM PULANG');
-        $worksheet->setCellValue('G6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('H6', 'TOTAL JAM KETERLAMBATAN');
+        $worksheet->setCellValue('D6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('E6', 'TANGGAL MASUK');
+        $worksheet->setCellValue('F6', 'JAM MASUK');
+        $worksheet->setCellValue('G6', 'JAM PULANG');
+        $worksheet->setCellValue('H6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('I6', 'TOTAL JAM KETERLAMBATAN');
+        $worksheet->setCellValue('J6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:H1');
+        $worksheet->mergeCells('A1:J1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -1001,31 +1052,33 @@ class Presensi extends BaseController
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
                 $worksheet->setCellValue('B' . $data_start_row, $data->nip);
                 $worksheet->setCellValue('C' . $data_start_row, $data->nama);
-                $worksheet->setCellValue('D' . $data_start_row, $data->tanggal_masuk);
-                $worksheet->setCellValue('E' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('F' . $data_start_row, $data->jam_keluar);
-                $worksheet->setCellValue('G' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('H' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('D' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('E' . $data_start_row, $data->tanggal_masuk);
+                $worksheet->setCellValue('F' . $data_start_row, $data->jam_masuk);
+                $worksheet->setCellValue('G' . $data_start_row, $data->jam_keluar);
+                $worksheet->setCellValue('H' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('I' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('J' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':H' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':H' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':H' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':J' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
         }
 
-        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
         foreach ($columns as $column) {
             $worksheet->getColumnDimension($column)->setAutoSize(true);
         }
 
         $worksheet->getStyle('A3:C4')->applyFromArray($styleArray);
         $worksheet->getStyle('A3:A6')->getFont()->setBold(true);
-        $worksheet->getStyle('A6:H6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $worksheet->getStyle('A6:H6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:J6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $worksheet->getStyle('A6:J6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()

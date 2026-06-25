@@ -9,6 +9,7 @@ class UnitOperasionalModel extends Model
     protected $db, $builder;
     protected $table = 'unit_operasional';
     protected $primaryKey = 'id';
+    protected $returnType    = 'object';
     protected $allowedFields = ['nama', 'slug'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';

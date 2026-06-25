@@ -99,11 +99,12 @@
                 const data = await resp.json();
                 const a = data.address || {};
                 const road    = a.road || a.pedestrian || a.footway || '';
-                const village = a.village || a.hamlet || a.suburb || a.neighbourhood || '';
+                const village = a.suburb;
+                const district = a.district;
                 const county  = a.county || '';
                 const city    = a.city || a.town || a.municipality || '';
-                const state   = a.state || '';
-                [road, village, county, city, state].forEach(function(v) { if (v) addrLines.push(v); });
+                const province = 'Jawa Timur';
+                [road, village, district, county, city, province].forEach(function(v) { if (v) addrLines.push(v); });
             } catch (e) {}
 
             // Logo — top-right

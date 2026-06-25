@@ -27,9 +27,10 @@ class PresensiModel extends Model
         $page = (@$_GET['page_rekap']) ? $_GET['page_rekap'] : 1;
         $offset = ($page - 1) * $perPage;
 
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
+        $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
         $this->builder->where('presensi.id_pegawai', $id_pegawai);
         $this->builder->orderBy('presensi.tanggal_masuk', 'DESC');
 
@@ -87,9 +88,10 @@ class PresensiModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $this->builder = $this->db->table('presensi');
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
+        $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
 
         // Scoping per unit (admin): null = tanpa filter (head)
@@ -140,9 +142,10 @@ class PresensiModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $this->builder = $this->db->table('presensi');
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
+        $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
 
         // Scoping per unit (admin): null = tanpa filter (head)

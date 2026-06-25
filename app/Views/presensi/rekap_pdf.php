@@ -79,6 +79,7 @@
         <thead>
             <tr>
                 <th>No</th>
+                <th>Unit Operasional</th>
                 <th>Tanggal</th>
                 <th>Jam Masuk</th>
                 <th>Foto Masuk</th>
@@ -94,6 +95,7 @@
                 <?php foreach ($rows as $r) : ?>
                     <tr>
                         <td><?= $r['no'] ?></td>
+                        <td><?= esc($r['nama_unit']) ?></td>
                         <td><?= esc($r['tanggal']) ?></td>
                         <td><?= esc($r['jam_masuk']) ?></td>
                         <td><?= $r['foto_masuk'] ? '<img class="foto" src="' . $r['foto_masuk'] . '">' : '-' ?></td>
@@ -106,7 +108,7 @@
                 <?php endforeach; ?>
             <?php else : ?>
                 <tr>
-                    <td colspan="9">Tidak ada data presensi.</td>
+                    <td colspan="10">Tidak ada data presensi.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
