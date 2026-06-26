@@ -84,7 +84,7 @@ class PegawaiModel extends Model
 
             if ($filter_keyword) {
                 $this->builder->groupStart()
-                    ->like('nama', $filter_keyword)
+                    ->like('pegawai.nama', $filter_keyword)
                     ->orLike('users.username', $filter_keyword)
                     ->orLike('users.email', $filter_keyword)
                     ->groupEnd();
