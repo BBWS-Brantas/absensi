@@ -73,6 +73,8 @@ $routes->post('/laporan-presensi-harian/pdf', 'Presensi::laporanHarianPdf', ['fi
 $routes->post('/laporan-presensi-bulanan/pdf', 'Presensi::laporanBulananPdf', ['filter' => 'role:admin,head']);
 $routes->post('/rekap-presensi/excel', 'Presensi::rekapPresensiPegawaiExcel', ['filter' => 'role:admin,pegawai']);
 $routes->post('/rekap-presensi/pdf', 'Presensi::rekapPresensiPegawaiPdf', ['filter' => 'role:admin,pegawai']);
+$routes->delete('/laporan-presensi/(:num)', 'Presensi::hapusPresensi/$1', ['filter' => 'role:admin,head']);
+$routes->post('/laporan-presensi/bulk-delete', 'Presensi::bulkHapusPresensi', ['filter' => 'role:admin,head']);
 
 $routes->get('/ketidakhadiran', 'Ketidakhadiran::index', ['filter' => 'role:admin,pegawai']);
 $routes->get('/pengajuan-ketidakhadiran', 'Ketidakhadiran::add', ['filter' => 'role:admin,pegawai']);

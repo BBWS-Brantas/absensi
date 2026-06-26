@@ -126,6 +126,48 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
                 eyeOffIcon.style.display = 'none';
             }
         }
+
+        (function () {
+            var loginInput = document.querySelector('input[name="login"]');
+            var form = document.querySelector('form');
+            if (!loginInput || !form) return;
+
+            var EMAIL_CHARS = /[^a-zA-Z0-9._%+\-@]/g;
+            var EMAIL_FORMAT = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+            // Strip any character that cannot appear in a standard email as the user types
+            loginInput.addEventListener('input', function () {
+                var start = this.selectionStart;
+                var before = this.value;
+                var after = before.replace(EMAIL_CHARS, '');
+                if (after !== before) {
+                    var removed = before.length - after.length;
+                    this.value = after;
+                    this.setSelectionRange(Math.max(0, start - removed), Math.max(0, start - removed));
+                }
+
+                // Clear client-side error once the value looks valid
+                if (this.dataset.clientError && EMAIL_FORMAT.test(this.value.trim())) {
+                    this.classList.remove('is-invalid');
+                    var fb = this.parentElement.querySelector('.invalid-feedback');
+                    if (fb) fb.textContent = '';
+                    delete this.dataset.clientError;
+                }
+            });
+
+            // Validate format on submit before the request goes out
+            form.addEventListener('submit', function (e) {
+                var val = loginInput.value.trim();
+                if (!EMAIL_FORMAT.test(val)) {
+                    e.preventDefault();
+                    loginInput.classList.add('is-invalid');
+                    loginInput.dataset.clientError = '1';
+                    var fb = loginInput.parentElement.querySelector('.invalid-feedback');
+                    if (fb) fb.textContent = val === '' ? 'Email wajib diisi.' : 'Format email tidak valid.';
+                    loginInput.focus();
+                }
+            });
+        })();
     </script>
 </body>
 

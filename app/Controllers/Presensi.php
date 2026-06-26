@@ -955,6 +955,83 @@ class Presensi extends BaseController
         return view('presensi/laporan_presensi_bulanan', $data);
     }
 
+    public function hapusPresensi($id)
+    {
+        $presensi = $this->presensiModel->find($id);
+        if (empty($presensi)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Presensi Tidak Ditemukan');
+        }
+
+        $unit_id = current_unit_id();
+        if ($unit_id !== null) {
+            $pegawai = $this->pegawaiModel->find($presensi['id_pegawai']);
+            if (!$pegawai || (int)$pegawai['id_unit'] !== (int)$unit_id) {
+                throw new \CodeIgniter\Exceptions\PageNotFoundException('Data tidak dalam unit Anda');
+            }
+        }
+
+        foreach (['foto_masuk' => 'masuk', 'foto_keluar' => 'keluar'] as $field => $jenis) {
+            if (!empty($presensi[$field]) && $presensi[$field] !== '-') {
+                $path = FCPATH . 'assets/img/foto_presensi/' . $jenis . '/' . $presensi[$field];
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+        }
+
+        $this->presensiModel->delete($id);
+
+        $redirect_to = $this->request->getPost('redirect_to');
+        session()->setFlashdata('berhasil', 'Data Presensi Berhasil Dihapus');
+        return redirect()->to($redirect_to === 'bulanan' ? '/laporan-presensi-bulanan' : '/laporan-presensi-harian');
+    }
+
+    public function bulkHapusPresensi()
+    {
+        $ids = $this->request->getPost('ids');
+        $redirect_to = $this->request->getPost('redirect_to');
+        $redirect_url = $redirect_to === 'bulanan' ? '/laporan-presensi-bulanan' : '/laporan-presensi-harian';
+
+        if (empty($ids)) {
+            session()->setFlashdata('gagal', 'Tidak ada data yang dipilih');
+            return redirect()->to($redirect_url);
+        }
+
+        $unit_id = current_unit_id();
+        $idArray = array_filter(explode(',', $ids));
+        $deletedCount = 0;
+
+        foreach ($idArray as $id) {
+            $presensi = $this->presensiModel->find($id);
+            if (!$presensi) continue;
+
+            if ($unit_id !== null) {
+                $pegawai = $this->pegawaiModel->find($presensi['id_pegawai']);
+                if (!$pegawai || (int)$pegawai['id_unit'] !== (int)$unit_id) continue;
+            }
+
+            foreach (['foto_masuk' => 'masuk', 'foto_keluar' => 'keluar'] as $field => $jenis) {
+                if (!empty($presensi[$field]) && $presensi[$field] !== '-') {
+                    $path = FCPATH . 'assets/img/foto_presensi/' . $jenis . '/' . $presensi[$field];
+                    if (is_file($path)) {
+                        unlink($path);
+                    }
+                }
+            }
+
+            $this->presensiModel->delete($id);
+            $deletedCount++;
+        }
+
+        if ($deletedCount > 0) {
+            session()->setFlashdata('berhasil', 'Data Presensi Berhasil Dihapus (' . $deletedCount . ' item)');
+        } else {
+            session()->setFlashdata('gagal', 'Tidak ada data yang berhasil dihapus');
+        }
+
+        return redirect()->to($redirect_url);
+    }
+
     public function laporanBulananExcel()
     {
         $filter_bulan = $this->request->getPOST('filter_bulan');

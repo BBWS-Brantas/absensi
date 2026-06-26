@@ -73,13 +73,25 @@
         <div class="row row-deck row-cards align-items-start">
             <div class="col-lg-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Presensi <strong><?= $data_tanggal; ?></strong></h3>
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h3 class="card-title m-0">Presensi <strong><?= $data_tanggal; ?></strong></h3>
+                        <button type="button" class="btn btn-danger btn-sm" id="btn-delete-selected" style="display: none;" data-bs-toggle="modal" data-bs-target="#modal-hapus-bulk">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                <path d="M4 7l16 0" />
+                                <path d="M10 11l0 6" />
+                                <path d="M14 11l0 6" />
+                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                            </svg>
+                            <span id="delete-selected-count">Hapus (0)</span>
+                        </button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <tr class="text-center">
+                                    <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="select-all" title="Pilih Semua"></th>
                                     <th>No</th>
                                     <th>ID TPM</th>
                                     <th>Nama TPM</th>
@@ -90,6 +102,7 @@
                                     <th>Total Jam Kerja</th>
                                     <th>Total Keterlambatan</th>
                                     <th>Keterangan Kegiatan</th>
+                                    <th>Aksi</th>
                                 </tr>
                                 <?php if (!empty($data_presensi)) : ?>
                                     <?php $nomor = 1 + ($perPage * ($currentPage - 1)); ?>
@@ -129,6 +142,9 @@
                                         ?>
 
                                         <tr>
+                                            <td class="text-center">
+                                                <input type="checkbox" class="form-check-input row-checkbox" value="<?= $data->id ?>" data-name="<?= esc($data->nama) ?>">
+                                            </td>
                                             <td class="text-center"><?= $nomor++ ?></td>
                                             <td class="text-center"><?= $data->nip ?></td>
                                             <td><?= $data->nama ?></td>
@@ -157,6 +173,9 @@
                                                 <td class="text-center"><?= $total_jam_keterlambatan_format ?></td>
                                             <?php endif; ?>
                                             <td><?= !empty($data->keterangan) && $data->keterangan !== '-' ? esc($data->keterangan) : '-' ?></td>
+                                            <td class="text-center">
+                                                <a href="#" class="badge bg-danger btn-hapus" data-id="<?= $data->id ?>" data-name="<?= esc($data->nama) ?>">hapus</a>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else : ?>
@@ -170,6 +189,76 @@
                     <div class="card-footer d-flex align-items-center justify-content-between">
                         <p class="m-0 text-muted">Showing <span><?= ($perPage * ($currentPage - 1)) + 1 ?></span> to <span><?= min($perPage * $currentPage, $total) ?></span> of <span><?= $total ?></span> entries</p>
                         <?= $pager; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Hapus Per Baris -->
+<div class="modal modal-blur fade" id="modal-hapus" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M10.24 3.957l-8.422 14.06a1.989 1.989 0 0 0 1.7 2.983h16.845a1.989 1.989 0 0 0 1.7 -2.983l-8.423 -14.06a1.989 1.989 0 0 0 -3.4 0z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <h3>Hapus?</h3>
+                <div class="text-muted">Apakah Anda yakin ingin menghapus data presensi <strong><span id="modal-hapus-name" class="text-danger">ini</span></strong>? Data yang sudah dihapus tidak dapat dikembalikan.</div>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col"><a href="#" class="btn w-100" data-bs-dismiss="modal">Batal</a></div>
+                        <div class="col">
+                            <form action="" method="post" class="d-inline" id="form-hapus">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="_method" value="DELETE">
+                                <input type="hidden" name="redirect_to" value="harian">
+                                <button type="submit" class="btn btn-danger w-100">Hapus</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Hapus Bulk -->
+<div class="modal modal-blur fade" id="modal-hapus-bulk" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M10.24 3.957l-8.422 14.06a1.989 1.989 0 0 0 1.7 2.983h16.845a1.989 1.989 0 0 0 1.7 -2.983l-8.423 -14.06a1.989 1.989 0 0 0 -3.4 0z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                </svg>
+                <h3>Hapus Dipilih?</h3>
+                <div class="text-muted">Apakah Anda yakin ingin menghapus <strong><span id="bulk-delete-count" class="text-danger">0</span></strong> data presensi? Data yang sudah dihapus tidak dapat dikembalikan.</div>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col"><a href="#" class="btn w-100" data-bs-dismiss="modal">Batal</a></div>
+                        <div class="col">
+                            <form action="<?= base_url('laporan-presensi/bulk-delete') ?>" method="post" class="d-inline" id="form-bulk-hapus">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="ids" id="bulk-ids" value="">
+                                <input type="hidden" name="redirect_to" value="harian">
+                                <button type="submit" class="btn btn-danger w-100">Hapus</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -200,6 +289,64 @@
             this.querySelector('[name="tanggal"]').value = document.getElementById('tanggal').value;
             this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
             if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;
+        });
+
+        // Checkbox — select all
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'select-all') {
+                document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                    cb.checked = e.target.checked;
+                });
+                updateDeleteButton();
+            } else if (e.target.classList.contains('row-checkbox')) {
+                updateSelectAll();
+                updateDeleteButton();
+            }
+        });
+
+        function updateSelectAll() {
+            var all = document.querySelectorAll('.row-checkbox');
+            var checked = document.querySelectorAll('.row-checkbox:checked');
+            var sa = document.getElementById('select-all');
+            if (!sa) return;
+            if (all.length > 0 && all.length === checked.length) {
+                sa.checked = true; sa.indeterminate = false;
+            } else if (checked.length > 0) {
+                sa.indeterminate = true;
+            } else {
+                sa.checked = false; sa.indeterminate = false;
+            }
+        }
+
+        function updateDeleteButton() {
+            var count = document.querySelectorAll('.row-checkbox:checked').length;
+            var btn = document.getElementById('btn-delete-selected');
+            var label = document.getElementById('delete-selected-count');
+            if (count > 0) {
+                btn.style.display = '';
+                label.textContent = 'Hapus (' + count + ')';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        // Bulk delete — populate modal before show
+        document.getElementById('btn-delete-selected').addEventListener('click', function() {
+            var ids = [];
+            document.querySelectorAll('.row-checkbox:checked').forEach(function(cb) { ids.push(cb.value); });
+            document.getElementById('bulk-delete-count').textContent = ids.length;
+            document.getElementById('bulk-ids').value = ids.join(',');
+        });
+
+        // Per-row hapus
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-hapus');
+            if (!btn) return;
+            e.preventDefault();
+            document.getElementById('modal-hapus-name').textContent = btn.dataset.name;
+            document.getElementById('form-hapus').action = '<?= base_url('laporan-presensi/') ?>' + btn.dataset.id;
+            var modal = new bootstrap.Modal(document.getElementById('modal-hapus'));
+            modal.show();
         });
     })();
 </script>
