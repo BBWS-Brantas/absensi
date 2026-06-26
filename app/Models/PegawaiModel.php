@@ -61,20 +61,25 @@ class PegawaiModel extends Model
                 $this->builder->where('auth_groups.name', $filter_role);
             }
 
-            if ($filter_status == 0 || $filter_status == 1) {
-                $this->builder->where('users.active', $filter_status);
+            if ($filter_status !== null && $filter_status !== '') {
+                $this->builder->where('users.active', (int) $filter_status);
             }
 
             if ($filter_jenisKelamin) {
-                $this->builder->where('jenis_kelamin', $filter_jenisKelamin);
+                $this->builder->where('pegawai.jenis_kelamin', $filter_jenisKelamin);
             }
 
             if ($filter_jabatan) {
-                $this->builder->where('jabatan', $filter_jabatan);
+                $this->builder->where('jabatan.jabatan', $filter_jabatan);
             }
 
             if ($filter_lokasi) {
                 $this->builder->where('EXISTS (SELECT 1 FROM lokasi_presensi_pegawai lpp JOIN lokasi_presensi lp ON lp.id = lpp.id_lokasi_presensi WHERE lpp.id_pegawai = pegawai.id AND lpp.active = 1 AND lp.nama_lokasi = ' . $this->db->escape($filter_lokasi) . ')', null, false);
+            }
+
+            $filter_unit = $filter['unit-operasional'] ?? '';
+            if ($filter_unit) {
+                $this->builder->where('pegawai.id_unit', (int) $filter_unit);
             }
 
             if ($filter_keyword) {
