@@ -119,7 +119,7 @@
             }
 
             // Text — bottom-right, right-aligned, white with drop shadow
-            const textLines = [dateText, coordText].concat(addrLines);
+            const textLines = [dateText, coordText].concat(addrLines).concat(['P3-TGAI TAHAP I']);
             const fontSize = Math.max(14, Math.round(w * 0.028));
             const lineH = fontSize * 1.6;
             const pad = Math.round(w * 0.02);

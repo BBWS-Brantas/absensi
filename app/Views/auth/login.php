@@ -79,21 +79,22 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
                                 <?php endif; ?>
                             </label>
                             <div class="input-group input-group-flat">
-                                <input name="password" type="password" class="form-control <?php if (session('errors.password')) : ?>is-invalid<?php endif ?>" placeholder="<?= lang('Auth.password') ?>" autocomplete="off">
+                                <input id="password" name="password" type="password" class="form-control <?php if (session('errors.password')) : ?>is-invalid<?php endif ?>" placeholder="<?= lang('Auth.password') ?>" autocomplete="off">
+                                <span class="input-group-text" style="cursor:pointer;" onclick="togglePassword()">
+                                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                                    </svg>
+                                </span>
                                 <div class="invalid-feedback">
                                     <?= session('errors.password') ?>
                                 </div>
                             </div>
                         </div>
-
-                        <?php if ($config->allowRemembering) : ?>
-                            <div class="mb-2">
-                                <label class="form-check">
-                                    <input name="remember" type="checkbox" class="form-check-input" <?php if (old('remember')) : ?> checked <?php endif ?> />
-                                    <span class="form-check-label"><?= lang('Auth.rememberMe') ?></span>
-                                </label>
-                            </div>
-                        <?php endif; ?>
 
                         <div class="form-footer">
                             <button type="submit" class="btn btn-primary w-100"><?= lang('Auth.loginAction') ?></button>
@@ -110,6 +111,22 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
     <!-- Tabler Core -->
     <script src="<?= base_url('../assets/js/tabler.min.js?1684106062') ?>" defer></script>
     <script src="<?= base_url('../assets/js/demo.min.js?1684106062') ?>" defer></script>
+    <script>
+        function togglePassword() {
+            var input = document.getElementById('password');
+            var eyeIcon = document.getElementById('eye-icon');
+            var eyeOffIcon = document.getElementById('eye-off-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.style.display = 'none';
+                eyeOffIcon.style.display = '';
+            } else {
+                input.type = 'password';
+                eyeIcon.style.display = '';
+                eyeOffIcon.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 
 </html>
