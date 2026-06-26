@@ -29,9 +29,11 @@
                                     </select>
                                 </div>
                                 <?php endif; ?>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-outline-primary">Filter</button>
+                                <?php if ($nama !== '' || $filter_unit !== '' || $tanggal !== date('Y-m-d')) : ?>
+                                <div class="col-auto align-self-end">
+                                    <a href="<?= base_url('laporan-presensi-harian') ?>" class="btn btn-outline-secondary">Reset</a>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </form>
                     </div>
@@ -176,11 +178,29 @@
 </div>
 
 <script>
-    document.getElementById('exportForm').addEventListener('submit', function() {
-        this.querySelector('[name="tanggal"]').value = document.getElementById('tanggal').value;
-        this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
+    (function() {
+        var filterForm = document.querySelector('form[method="get"]');
+
+        document.getElementById('tanggal').addEventListener('change', function() {
+            filterForm.submit();
+        });
+
         var unitEl = document.getElementById('id_unit');
-        if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;
-    });
+        if (unitEl) unitEl.addEventListener('change', function() {
+            filterForm.submit();
+        });
+
+        var debounce;
+        document.getElementById('nama').addEventListener('input', function() {
+            clearTimeout(debounce);
+            debounce = setTimeout(function() { filterForm.submit(); }, 500);
+        });
+
+        document.getElementById('exportForm').addEventListener('submit', function() {
+            this.querySelector('[name="tanggal"]').value = document.getElementById('tanggal').value;
+            this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
+            if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;
+        });
+    })();
 </script>
 <?= $this->endSection() ?>

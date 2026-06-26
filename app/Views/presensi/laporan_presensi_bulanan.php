@@ -50,9 +50,11 @@
                                     </select>
                                 </div>
                                 <?php endif; ?>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-outline-primary">Filter</button>
+                                <?php if ($nama !== '' || $filter_unit !== '' || $filter_bulan !== date('m') || (string)$filter_tahun !== date('Y')) : ?>
+                                <div class="col-auto align-self-end">
+                                    <a href="<?= base_url('laporan-presensi-bulanan') ?>" class="btn btn-outline-secondary">Reset</a>
                                 </div>
+                                <?php endif; ?>
                             </div>
                         </form>
                     </div>
@@ -198,9 +200,10 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Ambil elemen select
-        var selectTahuns = document.getElementsByClassName('filter_tahun');
+        var filterForm = document.querySelector('form[method="get"]');
 
+        // Isi opsi tahun secara dinamis
+        var selectTahuns = document.getElementsByClassName('filter_tahun');
         for (var i = 0; i < selectTahuns.length; i++) {
             var selectTahun = selectTahuns[i];
             var tahunSekarang = new Date().getFullYear();
@@ -208,20 +211,37 @@
                 var option = document.createElement('option');
                 option.value = tahun;
                 option.text = tahun;
-                if (tahun == <?= $filter_tahun ?>) {
-                    option.selected = true;
-                }
+                if (tahun == <?= $filter_tahun ?>) option.selected = true;
                 selectTahun.add(option);
             }
         }
-    });
 
-    document.getElementById('exportForm').addEventListener('submit', function() {
-        this.querySelector('[name="filter_bulan"]').value = document.getElementById('page_filter_bulan').value;
-        this.querySelector('[name="filter_tahun"]').value = document.getElementById('filter_tahun').value;
-        this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
+        // Auto-submit saat bulan, tahun, atau unit berubah
+        ['page_filter_bulan', 'filter_tahun'].forEach(function(id) {
+            document.getElementById(id).addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+
         var unitEl = document.getElementById('id_unit');
-        if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;
+        if (unitEl) unitEl.addEventListener('change', function() {
+            filterForm.submit();
+        });
+
+        // Auto-submit saat ketik nama (debounce 500ms)
+        var debounce;
+        document.getElementById('nama').addEventListener('input', function() {
+            clearTimeout(debounce);
+            debounce = setTimeout(function() { filterForm.submit(); }, 500);
+        });
+
+        // Sinkronkan nilai filter ke form export sebelum submit
+        document.getElementById('exportForm').addEventListener('submit', function() {
+            this.querySelector('[name="filter_bulan"]').value = document.getElementById('page_filter_bulan').value;
+            this.querySelector('[name="filter_tahun"]').value = document.getElementById('filter_tahun').value;
+            this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
+            if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;
+        });
     });
 </script>
 <?= $this->endSection() ?>
