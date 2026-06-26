@@ -79,45 +79,25 @@ class Pegawai extends BaseController
     public function index(): string
     {
         $id_unit = current_unit_id();
-        $pegawaiModel = $this->pegawaiModel->getPegawai(false, false, false, 10, $id_unit);
         $data_jabatan = $this->jabatanModel->get()->getResultArray();
         $data_lokasi = $this->lokasiModel->getByUnit($id_unit);
         $data_role = $this->roleModel->findAll();
         $currentPage = $this->request->getVar('page_pegawai') ? $this->request->getVar('page_pegawai') : 1;
 
         $filter = [
-            'keyword' => $this->request->getGet('keyword'),
-            'jabatan' => $this->request->getGet('jabatan'),
-            'role' => $this->request->getGet('role'),
-            'status' => $this->request->getGet('status'),
-            'jenis-kelamin' => $this->request->getGet('jenis-kelamin'),
-            'lokasi-presensi' => $this->request->getGet('lokasi-presensi'),
+            'keyword'          => $this->request->getGet('keyword') ?? '',
+            'jabatan'          => $this->request->getGet('jabatan') ?? '',
+            'role'             => $this->request->getGet('role') ?? '',
+            'status'           => $this->request->getGet('status') ?? '',
+            'jenis-kelamin'    => $this->request->getGet('jenis-kelamin') ?? '',
+            'lokasi-presensi'  => $this->request->getGet('lokasi-presensi') ?? '',
+            'unit-operasional' => ($id_unit === null) ? ($this->request->getGet('unit-operasional') ?? '') : '',
         ];
 
-        if (!empty($filter)) {
-            if ($filter['keyword'] === null) {
-                $filter['keyword'] = '';
-            }
-            if ($filter['jabatan'] === null) {
-                $filter['jabatan'] = '';
-            }
-            if ($filter['role'] === null) {
-                $filter['role'] = '';
-            }
-            if ($filter['status'] === null) {
-                $filter['status'] = '';
-            }
-            if ($filter['jenis-kelamin'] === null) {
-                $filter['jenis-kelamin'] = '';
-            }
-            if ($filter['lokasi-presensi'] === null) {
-                $filter['lokasi-presensi'] = '';
-            }
-            $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
-        }
+        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
 
         $filtered = false;
-        if (($filter['jabatan'] !== null && $filter['jabatan'] !== '') || ($filter['role'] !== null && $filter['role'] !== '') || ($filter['status'] !== null && $filter['status'] !== '') || ($filter['jenis-kelamin'] !== null && $filter['jenis-kelamin'] !== '') || ($filter['lokasi-presensi'] !== null && $filter['lokasi-presensi'] !== '')) {
+        if (($filter['jabatan'] !== null && $filter['jabatan'] !== '') || ($filter['role'] !== null && $filter['role'] !== '') || ($filter['status'] !== null && $filter['status'] !== '') || ($filter['jenis-kelamin'] !== null && $filter['jenis-kelamin'] !== '') || ($filter['lokasi-presensi'] !== null && $filter['lokasi-presensi'] !== '') || ($filter['unit-operasional'] !== null && $filter['unit-operasional'] !== '')) {
             $filtered = true;
         }
 
@@ -133,6 +113,7 @@ class Pegawai extends BaseController
             'data_jabatan' => $data_jabatan,
             'data_lokasi' => $data_lokasi,
             'data_role' => $data_role,
+            'data_unit' => ($id_unit === null) ? $this->unitModel->where('deleted_at', null)->findAll() : [],
             'currentPage' => $currentPage,
             'pager' => $pager,
             'total' => $total,
@@ -148,20 +129,16 @@ class Pegawai extends BaseController
     {
         $currentPage = $this->request->getVar('page_pegawai') ? $this->request->getVar('page_pegawai') : 1;
 
-        $filter = [
-            'keyword' => $this->request->getGet('keyword'),
-            'jabatan' => $this->request->getGet('jabatan'),
-            'role' => $this->request->getGet('role'),
-            'status' => $this->request->getGet('status'),
-            'jenis-kelamin' => $this->request->getGet('jenis-kelamin'),
-            'lokasi-presensi' => $this->request->getGet('lokasi-presensi'),
-        ];
-
-        if (empty($filter['keyword'])) {
-            $filter['keyword'] = '';
-        }
-
         $id_unit = current_unit_id();
+        $filter = [
+            'keyword'          => $this->request->getGet('keyword') ?? '',
+            'jabatan'          => $this->request->getGet('jabatan') ?? '',
+            'role'             => $this->request->getGet('role') ?? '',
+            'status'           => $this->request->getGet('status') ?? '',
+            'jenis-kelamin'    => $this->request->getGet('jenis-kelamin') ?? '',
+            'lokasi-presensi'  => $this->request->getGet('lokasi-presensi') ?? '',
+            'unit-operasional' => ($id_unit === null) ? ($this->request->getGet('unit-operasional') ?? '') : '',
+        ];
         $hasil = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
 
         $data = [
@@ -177,15 +154,17 @@ class Pegawai extends BaseController
 
     public function dataPegawaiExcel()
     {
+        $id_unit = current_unit_id();
         $filter = [
-            'keyword' => $this->request->getPost('keyword'),
-            'jabatan' => $this->request->getPost('jabatan'),
-            'role' => $this->request->getPost('role'),
-            'status' => $this->request->getPost('status'),
-            'jenis-kelamin' => $this->request->getPost('jenis-kelamin'),
-            'lokasi-presensi' => $this->request->getPost('lokasi-presensi'),
+            'keyword'          => $this->request->getPost('keyword'),
+            'jabatan'          => $this->request->getPost('jabatan'),
+            'role'             => $this->request->getPost('role'),
+            'status'           => $this->request->getPost('status'),
+            'jenis-kelamin'    => $this->request->getPost('jenis-kelamin'),
+            'lokasi-presensi'  => $this->request->getPost('lokasi-presensi'),
+            'unit-operasional' => ($id_unit === null) ? $this->request->getPost('unit-operasional') : '',
         ];
-        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, true, 10, current_unit_id());
+        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, true, 10, $id_unit);
         $data_pegawai = $pegawaiModel['pegawai'];
 
         $spreadsheet = new Spreadsheet();
@@ -206,6 +185,12 @@ class Pegawai extends BaseController
         if ($filter['lokasi-presensi'] === '') {
             $filter['lokasi-presensi'] = 'Semua Lokasi Presensi';
         }
+        if ($filter['unit-operasional'] === '' || $filter['unit-operasional'] === null) {
+            $filter['unit-operasional'] = 'Semua Unit';
+        } else {
+            $unitRow = $this->unitModel->find((int) $filter['unit-operasional']);
+            $filter['unit-operasional'] = $unitRow ? $unitRow->nama : 'Semua Unit';
+        }
 
         $worksheet->setCellValue('A1', 'Data Pegawai');
         $worksheet->setCellValue('A3', 'Filter Jabatan');
@@ -213,23 +198,25 @@ class Pegawai extends BaseController
         $worksheet->setCellValue('A5', 'Filter Status');
         $worksheet->setCellValue('A6', 'Filter Jenis Kelamin');
         $worksheet->setCellValue('A7', 'Filter Lokasi Presensi');
+        $worksheet->setCellValue('A8', 'Filter Unit Operasional');
         $worksheet->setCellValue('C3', $filter['jabatan']);
         $worksheet->setCellValue('C4', $filter['role']);
         $worksheet->setCellValue('C5', $filter['status']);
         $worksheet->setCellValue('C6', $filter['jenis-kelamin']);
         $worksheet->setCellValue('C7', $filter['lokasi-presensi']);
-        $worksheet->setCellValue('A9', '#');
-        $worksheet->setCellValue('B9', 'NAMA');
-        $worksheet->setCellValue('C9', 'NIP');
-        $worksheet->setCellValue('D9', 'JABATAN');
-        $worksheet->setCellValue('E9', 'ROLE AKUN');
-        $worksheet->setCellValue('F9', 'USERNAME');
-        $worksheet->setCellValue('G9', 'EMAIL');
-        $worksheet->setCellValue('H9', 'NO. HANDPHONE');
-        $worksheet->setCellValue('I9', 'ALAMAT');
-        $worksheet->setCellValue('J9', 'JENIS KELAMIN');
-        $worksheet->setCellValue('K9', 'LOKASI PRESENSI');
-        $worksheet->setCellValue('L9', 'STATUS');
+        $worksheet->setCellValue('C8', $filter['unit-operasional']);
+        $worksheet->setCellValue('A10', '#');
+        $worksheet->setCellValue('B10', 'NAMA');
+        $worksheet->setCellValue('C10', 'NIP');
+        $worksheet->setCellValue('D10', 'JABATAN');
+        $worksheet->setCellValue('E10', 'ROLE AKUN');
+        $worksheet->setCellValue('F10', 'USERNAME');
+        $worksheet->setCellValue('G10', 'EMAIL');
+        $worksheet->setCellValue('H10', 'NO. HANDPHONE');
+        $worksheet->setCellValue('I10', 'ALAMAT');
+        $worksheet->setCellValue('J10', 'JENIS KELAMIN');
+        $worksheet->setCellValue('K10', 'LOKASI PRESENSI');
+        $worksheet->setCellValue('L10', 'STATUS');
 
         $worksheet->mergeCells('A1:L1');
         $worksheet->mergeCells('A3:B3');
@@ -237,8 +224,9 @@ class Pegawai extends BaseController
         $worksheet->mergeCells('A5:B5');
         $worksheet->mergeCells('A6:B6');
         $worksheet->mergeCells('A7:B7');
+        $worksheet->mergeCells('A8:B8');
 
-        $data_start_row = 10;
+        $data_start_row = 11;
         $nomor = 1;
 
         $styleArray = [
@@ -288,16 +276,16 @@ class Pegawai extends BaseController
         }
         $worksheet->getColumnDimension('I')->setWidth(300, 'px');
 
-        $worksheet->getStyle('A3:C7')->applyFromArray($styleArray);
-        $worksheet->getStyle('A3:A7')->getFont()->setBold(true);
-        $worksheet->getStyle('A3:C7')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+        $worksheet->getStyle('A3:C8')->applyFromArray($styleArray);
+        $worksheet->getStyle('A3:A8')->getFont()->setBold(true);
+        $worksheet->getStyle('A3:C8')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setARGB('ffff00');
-        $worksheet->getStyle('A9:L9')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $worksheet->getStyle('A9:L9')->getFont()->setBold(true);
+        $worksheet->getStyle('A10:L10')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $worksheet->getStyle('A10:L10')->getFont()->setBold(true);
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="Data Pegawai_' . date('Y-m-d-His') . '.xlsx"');

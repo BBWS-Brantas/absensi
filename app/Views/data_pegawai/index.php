@@ -89,6 +89,21 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            <?php if (in_groups('head')) : ?>
+                                            <div class="m-3">
+                                                <label for="unit-operasional" class="form-label d-block">Unit Operasional</label>
+                                                <div class="row g-1 justify-content-evenly w-100">
+                                                    <div class="col-md-12">
+                                                        <select name="unit-operasional" id="unit-operasional" class="form-select">
+                                                            <option value="" <?= ($filter['unit-operasional'] == '') ? 'selected' : '' ?>>Tampilkan Semua</option>
+                                                            <?php foreach ($data_unit as $unit) : ?>
+                                                                <option value="<?= $unit->id ?>" <?= ($filter['unit-operasional'] == $unit->id) ? 'selected' : '' ?>><?= esc($unit->nama) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <?php endif; ?>
                                             <div class="m-3 mt-5">
                                                 <div class="d-flex">
                                                     <a href="<?= base_url('data-pegawai') ?>" class="btn btn-link">Hapus Filter</a>
@@ -259,6 +274,9 @@
                                 <input type="hidden" name="status" value="<?= esc($filter['status']) ?>">
                                 <input type="hidden" name="jenis-kelamin" value="<?= esc($filter['jenis-kelamin']) ?>">
                                 <input type="hidden" name="lokasi-presensi" value="<?= esc($filter['lokasi-presensi']) ?>">
+                                <?php if (in_groups('head')) : ?>
+                                <input type="hidden" name="unit-operasional" value="<?= esc($filter['unit-operasional']) ?>">
+                                <?php endif; ?>
                             </form>
                             <p class="m-0 text-muted">Showing <span><?= ($perPage * ($currentPage - 1)) + 1 ?></span> to <span><?= min($perPage * $currentPage, $total) ?></span> of <span><?= $total ?></span> entries</p>
                         </div>
@@ -456,6 +474,17 @@
                             </div>
                         </div>
                     </div>
+                    <?php if (in_groups('head')) : ?>
+                    <div class="mb-3">
+                        <label for="unit-operasional-export" class="form-label d-block">Unit Operasional</label>
+                        <select name="unit-operasional" id="unit-operasional-export" class="form-select">
+                            <option value="" <?= ($filter['unit-operasional'] == '') ? 'selected' : '' ?>>Tampilkan Semua</option>
+                            <?php foreach ($data_unit as $unit) : ?>
+                                <option value="<?= $unit->id ?>" <?= ($filter['unit-operasional'] == $unit->id) ? 'selected' : '' ?>><?= esc($unit->nama) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
@@ -469,7 +498,7 @@
 <script>
     $(document).ready(function() {
         $('#keyword').on('keyup', function() {
-            $.get('cari-pegawai?keyword=' + $('#keyword').val() + '&jabatan=' + $('#jabatan').val() + '&role=' + $('#role').val() + '&status=' + $('#status').val() + '&lokasi-presensi=' + $('#lokasi-presensi').val() + '&jenis-kelamin=' + $('#jenis-kelamin').val(), function(data) {
+            $.get('cari-pegawai?keyword=' + $('#keyword').val() + '&jabatan=' + $('#jabatan').val() + '&role=' + $('#role').val() + '&status=' + $('#status').val() + '&lokasi-presensi=' + $('#lokasi-presensi').val() + '&jenis-kelamin=' + $('#jenis-kelamin').val() + '&unit-operasional=' + ($('#unit-operasional').val() || ''), function(data) {
                 $('#data-pegawai').html(data);
             })
         })
