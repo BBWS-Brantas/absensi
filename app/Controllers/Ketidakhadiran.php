@@ -302,11 +302,11 @@ class Ketidakhadiran extends BaseController
                 ]
             ],
             'file' => [
-                'rules' => 'uploaded[file]|max_size[file,2048]|mime_in[file,application/pdf]',
+                'rules' => 'uploaded[file]|max_size[file,2048]|mime_in[file,application/pdf,image/jpeg]',
                 'errors' => [
-                    'uploaded' => 'File PDF Surat Keterangan wajib diupload.',
-                    'max_size' => 'File PDF harus berukuran kurang dari 2 MB',
-                    'mime_in' => 'File harus berekstensi PDF',
+                    'uploaded' => 'File Surat Keterangan wajib diupload.',
+                    'max_size' => 'File harus berukuran kurang dari 2 MB',
+                    'mime_in' => 'File harus berformat PDF atau JPG',
                 ]
             ]
         ];
@@ -329,7 +329,8 @@ class Ketidakhadiran extends BaseController
         }
 
         $file = $this->request->getFile('file');
-        $nama_file = 'SuratKeterangan-' . user()->username . '-' . date('Y-m-d-His') . '.pdf';
+        $ext = $file->getClientExtension();
+        $nama_file = 'SuratKeterangan-' . user()->username . '-' . date('Y-m-d-His') . '.' . $ext;
         $file->move(FCPATH . 'assets/file/surat_keterangan_ketidakhadiran/', $nama_file);
 
         // Menentukan status pengajuan
@@ -433,10 +434,10 @@ class Ketidakhadiran extends BaseController
                 ]
             ],
             'file' => [
-                'rules' => 'max_size[file,2048]|mime_in[file,application/pdf]',
+                'rules' => 'max_size[file,2048]|mime_in[file,application/pdf,image/jpeg]',
                 'errors' => [
-                    'max_size' => 'Mohon upload file PDF berukuran kurang dari 2 MB',
-                    'mime_in' => 'Mohon upload file berekstensi PDF',
+                    'max_size' => 'Mohon upload file berukuran kurang dari 2 MB',
+                    'mime_in' => 'Mohon upload file berformat PDF atau JPG',
                 ]
             ]
         ];
@@ -465,7 +466,8 @@ class Ketidakhadiran extends BaseController
         if ($file->getError() == 4) {
             $nama_file = $this->request->getVar('file_old');
         } else {
-            $nama_file = 'SuratKeterangan-' . user()->username . '-' . date('Y-m-d-His') . '.pdf';
+            $ext = $file->getClientExtension();
+            $nama_file = 'SuratKeterangan-' . user()->username . '-' . date('Y-m-d-His') . '.' . $ext;
             $file->move(FCPATH . 'assets/file/surat_keterangan_ketidakhadiran/', $nama_file);
 
             unlink('assets/file/surat_keterangan_ketidakhadiran/' . $this->request->getVar('file_old'));

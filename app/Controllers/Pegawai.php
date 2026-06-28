@@ -94,7 +94,10 @@ class Pegawai extends BaseController
             'unit-operasional' => ($id_unit === null) ? ($this->request->getGet('unit-operasional') ?? '') : '',
         ];
 
-        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
+        $perPageInput = (int) ($this->request->getGet('perPage') ?? 10);
+        $perPage = in_array($perPageInput, [10, 25, 50, 100]) ? $perPageInput : 10;
+
+        $pegawaiModel = $this->pegawaiModel->getPegawai(false, $filter, false, $perPage, $id_unit);
 
         $filtered = false;
         if (($filter['jabatan'] !== null && $filter['jabatan'] !== '') || ($filter['role'] !== null && $filter['role'] !== '') || ($filter['status'] !== null && $filter['status'] !== '') || ($filter['jenis-kelamin'] !== null && $filter['jenis-kelamin'] !== '') || ($filter['lokasi-presensi'] !== null && $filter['lokasi-presensi'] !== '') || ($filter['unit-operasional'] !== null && $filter['unit-operasional'] !== '')) {
@@ -139,7 +142,10 @@ class Pegawai extends BaseController
             'lokasi-presensi'  => $this->request->getGet('lokasi-presensi') ?? '',
             'unit-operasional' => ($id_unit === null) ? ($this->request->getGet('unit-operasional') ?? '') : '',
         ];
-        $hasil = $this->pegawaiModel->getPegawai(false, $filter, false, 10, $id_unit);
+        $perPageInput = (int) ($this->request->getGet('perPage') ?? 10);
+        $perPage = in_array($perPageInput, [10, 25, 50, 100]) ? $perPageInput : 10;
+
+        $hasil = $this->pegawaiModel->getPegawai(false, $filter, false, $perPage, $id_unit);
 
         $data = [
             'data_pegawai' => $hasil['pegawai'],

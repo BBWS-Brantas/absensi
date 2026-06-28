@@ -84,9 +84,9 @@
                             </div>
 
                             <div class="mb-3">
-                                <div class="form-label">Surat Keterangan (PDF)</div>
+                                <div class="form-label">Surat Keterangan (PDF/JPG)</div>
                                 <input type="hidden" name="file_old" value="<?= $data_pengajuan->file ?>">
-                                <input type="file" class="form-control <?= validation_show_error('file') ? 'is-invalid' : '' ?>" name="file" />
+                                <input type="file" class="form-control <?= validation_show_error('file') ? 'is-invalid' : '' ?>" name="file" accept=".pdf,.jpg,.jpeg" />
                                 <?php if (validation_show_error('file')) : ?>
                                     <div class="invalid-feedback">
                                         <?= validation_show_error('file') ?>
