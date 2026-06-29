@@ -9,18 +9,18 @@
         }
 
         body {
-            font-size: 10px;
+            font-size: 9px;
             color: #000;
         }
 
         h2 {
             margin: 0 0 4px;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         table.meta {
             margin-bottom: 10px;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         table.meta td {
@@ -36,7 +36,7 @@
         table.data th,
         table.data td {
             border: 1px solid #333;
-            padding: 4px;
+            padding: 3px 4px;
             text-align: center;
             vertical-align: middle;
         }
@@ -45,12 +45,7 @@
             background: #f0f0f0;
         }
 
-        img.foto {
-            width: 70px;
-            height: auto;
-        }
-
-        td.ket {
+        td.left {
             text-align: left;
         }
     </style>
@@ -71,14 +66,14 @@
         <thead>
             <tr>
                 <th>No</th>
-                <th>ID TPM</th>
                 <th>Nama TPM</th>
                 <th>Unit Operasional</th>
+                <th>Jabatan</th>
                 <th>Tanggal</th>
                 <th>Jam Masuk</th>
-                <th>Foto Masuk</th>
+                <th>Koordinat Masuk</th>
                 <th>Jam Pulang</th>
-                <th>Foto Pulang</th>
+                <th>Koordinat Pulang</th>
                 <th>Total Jam Kerja</th>
                 <th>Total Keterlambatan</th>
                 <th>Keterangan Kegiatan</th>
@@ -89,17 +84,17 @@
                 <?php foreach ($rows as $r) : ?>
                     <tr>
                         <td><?= $r['no'] ?></td>
-                        <td><?= esc($r['nip']) ?></td>
-                        <td class="ket"><?= esc($r['nama']) ?></td>
-                        <td class="ket"><?= esc($r['nama_unit']) ?></td>
+                        <td class="left"><?= esc($r['nama']) ?></td>
+                        <td class="left"><?= esc($r['nama_unit']) ?></td>
+                        <td class="left"><?= esc($r['jabatan']) ?></td>
                         <td><?= esc($r['tanggal']) ?></td>
                         <td><?= esc($r['jam_masuk']) ?></td>
-                        <td><?= $r['foto_masuk'] ? '<img class="foto" src="' . $r['foto_masuk'] . '">' : '-' ?></td>
+                        <td><?= esc($r['koordinat_masuk']) ?></td>
                         <td><?= esc($r['jam_keluar']) ?></td>
-                        <td><?= $r['foto_keluar'] ? '<img class="foto" src="' . $r['foto_keluar'] . '">' : '-' ?></td>
+                        <td><?= esc($r['koordinat_keluar']) ?></td>
                         <td><?= esc($r['total_jam_kerja']) ?></td>
                         <td><?= esc($r['total_keterlambatan']) ?></td>
-                        <td class="ket"><?= esc($r['keterangan']) ?></td>
+                        <td class="left"><?= esc($r['keterangan']) ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php else : ?>

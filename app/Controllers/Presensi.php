@@ -621,19 +621,24 @@ class Presensi extends BaseController
                 ? 'On Time'
                 : sprintf('%d Jam %d Menit', floor($terlambat / 3600), floor(($terlambat % 3600) / 60));
 
+            $koordinat_masuk  = (!empty($data->lat_masuk)  && !empty($data->lng_masuk))
+                ? $data->lat_masuk . ', ' . $data->lng_masuk : '-';
+            $koordinat_keluar = (!$belum_keluar && !empty($data->lat_keluar) && !empty($data->lng_keluar))
+                ? $data->lat_keluar . ', ' . $data->lng_keluar : '-';
+
             $rows[] = [
                 'no'                  => $nomor++,
-                'nip'                 => $data->nip,
                 'nama'                => $data->nama,
                 'nama_unit'           => $data->nama_unit ?? '-',
+                'jabatan'             => $data->jabatan ?? '-',
                 'tanggal'             => date('d F Y', strtotime($data->tanggal_masuk)),
                 'jam_masuk'           => $data->jam_masuk,
+                'koordinat_masuk'     => $koordinat_masuk,
                 'jam_keluar'          => $belum_keluar ? '-' : $data->jam_keluar,
+                'koordinat_keluar'    => $koordinat_keluar,
                 'total_jam_kerja'     => $total_jam_kerja_format,
                 'total_keterlambatan' => $total_keterlambatan_format,
                 'keterangan'          => (! empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-',
-                'foto_masuk'          => $this->fotoDataUri('masuk', $data->foto_masuk),
-                'foto_keluar'         => $belum_keluar ? null : $this->fotoDataUri('keluar', $data->foto_keluar),
             ];
         }
 
@@ -785,17 +790,19 @@ class Presensi extends BaseController
         $worksheet->setCellValue('A3', 'Tanggal');
         $worksheet->setCellValue('C3', $tanggal);
         $worksheet->setCellValue('A6', '#');
-        $worksheet->setCellValue('B6', 'NIP');
-        $worksheet->setCellValue('C6', 'NAMA TPM');
-        $worksheet->setCellValue('D6', 'UNIT OPERASIONAL');
-        $worksheet->setCellValue('E6', 'TANGGAL MASUK');
+        $worksheet->setCellValue('B6', 'NAMA TPM');
+        $worksheet->setCellValue('C6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('D6', 'JABATAN');
+        $worksheet->setCellValue('E6', 'TANGGAL');
         $worksheet->setCellValue('F6', 'JAM MASUK');
-        $worksheet->setCellValue('G6', 'JAM PULANG');
-        $worksheet->setCellValue('H6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('I6', 'TOTAL JAM KETERLAMBATAN');
-        $worksheet->setCellValue('J6', 'KETERANGAN KEGIATAN');
+        $worksheet->setCellValue('G6', 'KOORDINAT MASUK');
+        $worksheet->setCellValue('H6', 'JAM PULANG');
+        $worksheet->setCellValue('I6', 'KOORDINAT PULANG');
+        $worksheet->setCellValue('J6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('K6', 'TOTAL KETERLAMBATAN');
+        $worksheet->setCellValue('L6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:J1');
+        $worksheet->mergeCells('A1:L1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -813,80 +820,59 @@ class Presensi extends BaseController
 
         if (!empty($data_presensi)) {
             foreach ($data_presensi as $data) {
-                // TOTAL JAM KERJA
-                $jam_tanggal_masuk = date('Y-m-d H:i:s', strtotime($data->tanggal_masuk . ' ' . $data->jam_masuk));
-                $jam_tanggal_keluar = date('Y-m-d H:i:s', strtotime($data->tanggal_keluar . ' ' . $data->jam_keluar));
+                $belum_keluar = ($data->tanggal_keluar === '0000-00-00' || $data->jam_keluar === '00:00:00');
 
-                $timestamp_masuk = strtotime($jam_tanggal_masuk);
-                $timestamp_keluar = strtotime($jam_tanggal_keluar);
-
-                // Selisih dalam format time
-                $selisih = $timestamp_keluar - $timestamp_masuk;
-
-                // Selisih dalam format jam
-                $total_jam_kerja = floor($selisih / 3600);
-
-                // Selisih dalam format menit
-                $selisih_menit_kerja = floor(($selisih % 3600) / 60);
-
-                // Format string
-                $total_jam_kerja_format = sprintf("%d Jam %d Menit", $total_jam_kerja, $selisih_menit_kerja);
-
-                if ($total_jam_kerja < 0) {
+                // Total jam kerja
+                if ($belum_keluar) {
                     $total_jam_kerja_format = '0 Jam 0 Menit';
+                } else {
+                    $selisih = strtotime($data->tanggal_keluar . ' ' . $data->jam_keluar) - strtotime($data->tanggal_masuk . ' ' . $data->jam_masuk);
+                    $total_jam_kerja_format = ($selisih < 0)
+                        ? '0 Jam 0 Menit'
+                        : sprintf('%d Jam %d Menit', floor($selisih / 3600), floor(($selisih % 3600) / 60));
                 }
 
-                // TOTAL KETERLAMBATAN
-                $jam_masuk = date('H:i:s', strtotime($data->jam_masuk));
-                $timestamp_jam_masuk_real = strtotime($jam_masuk);
+                // Total keterlambatan
+                $terlambat = strtotime(date('H:i:s', strtotime($data->jam_masuk))) - strtotime($data->jam_masuk_kantor);
+                $total_jam_keterlambatan_format = ($terlambat <= 0)
+                    ? 'On Time'
+                    : sprintf('%d Jam %d Menit', floor($terlambat / 3600), floor(($terlambat % 3600) / 60));
 
-                $jam_masuk_kantor = $data->jam_masuk_kantor;
-                $timestamp_jam_masuk_kantor = strtotime($jam_masuk_kantor);
-
-                $terlambat = $timestamp_jam_masuk_real - $timestamp_jam_masuk_kantor;
-                $total_jam_keterlambatan = floor($terlambat / 3600);
-                $selisih_menit_keterlambatan = floor(($terlambat % 3600) / 60);
-
-                $total_jam_keterlambatan_format = sprintf("%d Jam %d Menit", $total_jam_keterlambatan, $selisih_menit_keterlambatan);
-
-                if ($total_jam_keterlambatan < 0) {
-                    $total_jam_keterlambatan_format = 'On Time';
-                }
+                // Koordinat
+                $koordinat_masuk  = (!empty($data->lat_masuk) && !empty($data->lng_masuk))
+                    ? $data->lat_masuk . ', ' . $data->lng_masuk : '-';
+                $koordinat_keluar = (!$belum_keluar && !empty($data->lat_keluar) && !empty($data->lng_keluar))
+                    ? $data->lat_keluar . ', ' . $data->lng_keluar : '-';
 
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
-                $worksheet->setCellValue('B' . $data_start_row, $data->nip);
-                $worksheet->setCellValue('C' . $data_start_row, $data->nama);
-                $worksheet->setCellValue('D' . $data_start_row, $data->nama_unit ?? '-');
-                $worksheet->setCellValue('E' . $data_start_row, $data->tanggal_masuk);
+                $worksheet->setCellValue('B' . $data_start_row, $data->nama);
+                $worksheet->setCellValue('C' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('D' . $data_start_row, $data->jabatan ?? '-');
+                $worksheet->setCellValue('E' . $data_start_row, date('d F Y', strtotime($data->tanggal_masuk)));
                 $worksheet->setCellValue('F' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('G' . $data_start_row, $data->jam_keluar);
-                $worksheet->setCellValue('H' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('I' . $data_start_row, $total_jam_keterlambatan_format);
-                $worksheet->setCellValue('J' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
+                $worksheet->setCellValue('G' . $data_start_row, $koordinat_masuk);
+                $worksheet->setCellValue('H' . $data_start_row, $belum_keluar ? '-' : $data->jam_keluar);
+                $worksheet->setCellValue('I' . $data_start_row, $koordinat_keluar);
+                $worksheet->setCellValue('J' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('K' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('L' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':J' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':L' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
         }
 
-        $worksheet->getColumnDimension('A')->setAutoSize(true);
-        $worksheet->getColumnDimension('B')->setAutoSize(true);
-        $worksheet->getColumnDimension('C')->setAutoSize(true);
-        $worksheet->getColumnDimension('D')->setAutoSize(true);
-        $worksheet->getColumnDimension('E')->setAutoSize(true);
-        $worksheet->getColumnDimension('F')->setAutoSize(true);
-        $worksheet->getColumnDimension('G')->setAutoSize(true);
-        $worksheet->getColumnDimension('H')->setAutoSize(true);
-        $worksheet->getColumnDimension('I')->setAutoSize(true);
-        $worksheet->getColumnDimension('J')->setAutoSize(true);
+        foreach (['A','B','C','D','E','F','G','H','I','J','K','L'] as $col) {
+            $worksheet->getColumnDimension($col)->setAutoSize(true);
+        }
 
         $worksheet->getStyle('A3:C3')->applyFromArray($styleArray);
-        $worksheet->getStyle('A6:J6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:L6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
@@ -894,12 +880,10 @@ class Presensi extends BaseController
             ->getStartColor()->setARGB('ffff00');
         $worksheet->getStyle('C3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
 
-        // redirect output to client browser
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="Laporan Presensi Harian_' . date('Y-m-d', strtotime($tanggal)) . '.xlsx"');
         header('Cache-Control: max-age=0');
 
-        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer = new Xlsx($spreadsheet);
         $writer->save('php://output');
         exit();
@@ -1086,20 +1070,22 @@ class Presensi extends BaseController
         $worksheet->setCellValue('A1', 'Laporan Presensi Bulanan');
         $worksheet->setCellValue('A3', 'Bulan');
         $worksheet->setCellValue('A4', 'Tahun');
-        $worksheet->setCellValue('C3', date('F', strtotime($filter_bulan)));
+        $worksheet->setCellValue('C3', date('F', mktime(0, 0, 0, (int) $filter_bulan, 1)));
         $worksheet->setCellValue('C4', $filter_tahun);
         $worksheet->setCellValue('A6', '#');
-        $worksheet->setCellValue('B6', 'NIP');
-        $worksheet->setCellValue('C6', 'NAMA TPM');
-        $worksheet->setCellValue('D6', 'UNIT OPERASIONAL');
-        $worksheet->setCellValue('E6', 'TANGGAL MASUK');
+        $worksheet->setCellValue('B6', 'NAMA TPM');
+        $worksheet->setCellValue('C6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('D6', 'JABATAN');
+        $worksheet->setCellValue('E6', 'TANGGAL');
         $worksheet->setCellValue('F6', 'JAM MASUK');
-        $worksheet->setCellValue('G6', 'JAM PULANG');
-        $worksheet->setCellValue('H6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('I6', 'TOTAL JAM KETERLAMBATAN');
-        $worksheet->setCellValue('J6', 'KETERANGAN KEGIATAN');
+        $worksheet->setCellValue('G6', 'KOORDINAT MASUK');
+        $worksheet->setCellValue('H6', 'JAM PULANG');
+        $worksheet->setCellValue('I6', 'KOORDINAT PULANG');
+        $worksheet->setCellValue('J6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('K6', 'TOTAL KETERLAMBATAN');
+        $worksheet->setCellValue('L6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:J1');
+        $worksheet->mergeCells('A1:L1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -1117,76 +1103,61 @@ class Presensi extends BaseController
 
         if (!empty($data_presensi)) {
             foreach ($data_presensi as $data) {
-                // TOTAL JAM KERJA
-                $jam_tanggal_masuk = date('Y-m-d H:i:s', strtotime($data->tanggal_masuk . ' ' . $data->jam_masuk));
-                $jam_tanggal_keluar = date('Y-m-d H:i:s', strtotime($data->tanggal_keluar . ' ' . $data->jam_keluar));
+                $belum_keluar = ($data->tanggal_keluar === '0000-00-00' || $data->jam_keluar === '00:00:00');
 
-                $timestamp_masuk = strtotime($jam_tanggal_masuk);
-                $timestamp_keluar = strtotime($jam_tanggal_keluar);
-
-                // Selisih dalam format time
-                $selisih = $timestamp_keluar - $timestamp_masuk;
-
-                // Selisih dalam format jam
-                $total_jam_kerja = floor($selisih / 3600);
-
-                // Selisih dalam format menit
-                $selisih_menit_kerja = floor(($selisih % 3600) / 60);
-
-                // Format string
-                $total_jam_kerja_format = sprintf("%d Jam %d Menit", $total_jam_kerja, $selisih_menit_kerja);
-
-                if ($total_jam_kerja < 0) {
+                // Total jam kerja
+                if ($belum_keluar) {
                     $total_jam_kerja_format = '0 Jam 0 Menit';
+                } else {
+                    $selisih = strtotime($data->tanggal_keluar . ' ' . $data->jam_keluar) - strtotime($data->tanggal_masuk . ' ' . $data->jam_masuk);
+                    $total_jam_kerja_format = ($selisih < 0)
+                        ? '0 Jam 0 Menit'
+                        : sprintf('%d Jam %d Menit', floor($selisih / 3600), floor(($selisih % 3600) / 60));
                 }
 
-                // TOTAL KETERLAMBATAN
-                $jam_masuk = date('H:i:s', strtotime($data->jam_masuk));
-                $timestamp_jam_masuk_real = strtotime($jam_masuk);
+                // Total keterlambatan
+                $terlambat = strtotime(date('H:i:s', strtotime($data->jam_masuk))) - strtotime($data->jam_masuk_kantor);
+                $total_jam_keterlambatan_format = ($terlambat <= 0)
+                    ? 'On Time'
+                    : sprintf('%d Jam %d Menit', floor($terlambat / 3600), floor(($terlambat % 3600) / 60));
 
-                $jam_masuk_kantor = $data->jam_masuk_kantor;
-                $timestamp_jam_masuk_kantor = strtotime($jam_masuk_kantor);
-
-                $terlambat = $timestamp_jam_masuk_real - $timestamp_jam_masuk_kantor;
-                $total_jam_keterlambatan = floor($terlambat / 3600);
-                $selisih_menit_keterlambatan = floor(($terlambat % 3600) / 60);
-
-                $total_jam_keterlambatan_format = sprintf("%d Jam %d Menit", $total_jam_keterlambatan, $selisih_menit_keterlambatan);
-
-                if ($total_jam_keterlambatan < 0) {
-                    $total_jam_keterlambatan_format = 'On Time';
-                }
+                // Koordinat
+                $koordinat_masuk  = (!empty($data->lat_masuk) && !empty($data->lng_masuk))
+                    ? $data->lat_masuk . ', ' . $data->lng_masuk : '-';
+                $koordinat_keluar = (!$belum_keluar && !empty($data->lat_keluar) && !empty($data->lng_keluar))
+                    ? $data->lat_keluar . ', ' . $data->lng_keluar : '-';
 
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
-                $worksheet->setCellValue('B' . $data_start_row, $data->nip);
-                $worksheet->setCellValue('C' . $data_start_row, $data->nama);
-                $worksheet->setCellValue('D' . $data_start_row, $data->nama_unit ?? '-');
-                $worksheet->setCellValue('E' . $data_start_row, $data->tanggal_masuk);
+                $worksheet->setCellValue('B' . $data_start_row, $data->nama);
+                $worksheet->setCellValue('C' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('D' . $data_start_row, $data->jabatan ?? '-');
+                $worksheet->setCellValue('E' . $data_start_row, date('d F Y', strtotime($data->tanggal_masuk)));
                 $worksheet->setCellValue('F' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('G' . $data_start_row, $data->jam_keluar);
-                $worksheet->setCellValue('H' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('I' . $data_start_row, $total_jam_keterlambatan_format);
-                $worksheet->setCellValue('J' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
+                $worksheet->setCellValue('G' . $data_start_row, $koordinat_masuk);
+                $worksheet->setCellValue('H' . $data_start_row, $belum_keluar ? '-' : $data->jam_keluar);
+                $worksheet->setCellValue('I' . $data_start_row, $koordinat_keluar);
+                $worksheet->setCellValue('J' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('K' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('L' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':J' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':J' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':L' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
         }
 
-        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-        foreach ($columns as $column) {
-            $worksheet->getColumnDimension($column)->setAutoSize(true);
+        foreach (['A','B','C','D','E','F','G','H','I','J','K','L'] as $col) {
+            $worksheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         $worksheet->getStyle('A3:C4')->applyFromArray($styleArray);
         $worksheet->getStyle('A3:A6')->getFont()->setBold(true);
-        $worksheet->getStyle('A6:J6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $worksheet->getStyle('A6:J6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:L6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $worksheet->getStyle('A6:L6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
