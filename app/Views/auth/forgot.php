@@ -39,7 +39,7 @@
         <div class="container container-tight py-4">
             <div class="text-center mb-4">
                 <a href="<?= base_url() ?>" class="navbar-brand navbar-brand-autodark align-items-center">
-                    <img src="<?= base_url('../assets/img/company/logo.png') ?>" height="36" alt="O-Present">
+                    <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" height="36" alt="O-Present">
                     <span>O-Present</span>
                 </a>
             </div>

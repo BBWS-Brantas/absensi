@@ -9,7 +9,7 @@ class PresensiModel extends Model
     protected $db, $builder;
     protected $table = 'presensi';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['id_pegawai', 'id_lokasi_presensi', 'id_lokasi_keluar', 'tanggal_masuk', 'jam_masuk', 'foto_masuk', 'tanggal_keluar', 'jam_keluar', 'foto_keluar', 'keterangan'];
+    protected $allowedFields = ['id_pegawai', 'id_lokasi_presensi', 'id_lokasi_keluar', 'tanggal_masuk', 'jam_masuk', 'foto_masuk', 'lat_masuk', 'lng_masuk', 'tanggal_keluar', 'jam_keluar', 'foto_keluar', 'lat_keluar', 'lng_keluar', 'keterangan'];
     protected $useTimestamps = true;
 
     public function __construct()
@@ -79,7 +79,7 @@ class PresensiModel extends Model
         }
     }
 
-    public function getDataPresensiHarian($tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10, $id_unit = null, $nama = false)
+    public function getDataPresensiHarian($tanggal_dari = false, $tanggal_sampai = false, $print = false, $perPage = 10, $id_unit = null, $nama = false, $jabatan = false)
     {
         $pager = service('pager');
         $pager->setPath('laporan-presensi-harian', 'harian');
@@ -88,10 +88,11 @@ class PresensiModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $this->builder = $this->db->table('presensi');
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit, jabatan.jabatan');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
         $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
+        $this->builder->join('jabatan', 'jabatan.id = pegawai.id_jabatan', 'left');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
 
         // Scoping per unit (admin): null = tanpa filter (head)
@@ -115,6 +116,10 @@ class PresensiModel extends Model
                 ->groupEnd();
         }
 
+        if (!empty($jabatan)) {
+            $this->builder->where('jabatan.jabatan', $jabatan);
+        }
+
         $countQuery = clone $this->builder;
         $total = $countQuery->countAllResults();
 
@@ -133,7 +138,7 @@ class PresensiModel extends Model
         ];
     }
 
-    public function getDataPresensiBulanan($filter_bulan = false, $filter_tahun = false, $print = false, $perPage = 10, $id_unit = null, $nama = false)
+    public function getDataPresensiBulanan($filter_bulan = false, $filter_tahun = false, $print = false, $perPage = 10, $id_unit = null, $nama = false, $jabatan = false)
     {
         $pager = service('pager');
         $pager->setPath('laporan-presensi-bulanan', 'bulanan');
@@ -142,10 +147,11 @@ class PresensiModel extends Model
         $offset = ($page - 1) * $perPage;
 
         $this->builder = $this->db->table('presensi');
-        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit');
+        $this->builder->select('presensi.*, pegawai.nip, pegawai.nama, presensi.id_lokasi_presensi, lokasi_presensi.nama_lokasi as lokasi_presensi, lokasi_presensi.jam_masuk as jam_masuk_kantor, unit_operasional.nama as nama_unit, jabatan.jabatan');
         $this->builder->join('pegawai', 'pegawai.id = presensi.id_pegawai');
         $this->builder->join('lokasi_presensi', 'lokasi_presensi.id = presensi.id_lokasi_presensi', 'left');
         $this->builder->join('unit_operasional', 'unit_operasional.id = pegawai.id_unit', 'left');
+        $this->builder->join('jabatan', 'jabatan.id = pegawai.id_jabatan', 'left');
         $this->builder->orderBy('tanggal_masuk', 'DESC');
 
         // Scoping per unit (admin): null = tanpa filter (head)
@@ -168,6 +174,10 @@ class PresensiModel extends Model
                 ->like('pegawai.nama', $nama)
                 ->orLike('pegawai.nip', $nama)
                 ->groupEnd();
+        }
+
+        if (!empty($jabatan)) {
+            $this->builder->where('jabatan.jabatan', $jabatan);
         }
 
         $countQuery = clone $this->builder;

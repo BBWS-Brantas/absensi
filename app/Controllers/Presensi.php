@@ -9,6 +9,7 @@ use App\Models\PresensiModel;
 use App\Models\LokasiPresensiModel;
 use App\Models\LokasiPresensiPegawaiModel;
 use App\Models\UnitOperasionalModel;
+use App\Models\JabatanModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -20,6 +21,7 @@ class Presensi extends BaseController
     protected $presensiModel;
     protected $pegawaiModel;
     protected $unitModel;
+    protected $jabatanModel;
 
     public function __construct()
     {
@@ -29,6 +31,7 @@ class Presensi extends BaseController
         $this->presensiModel = new PresensiModel();
         $this->pegawaiModel = new PegawaiModel();
         $this->unitModel = new UnitOperasionalModel();
+        $this->jabatanModel = new JabatanModel();
     }
 
     /**
@@ -151,6 +154,8 @@ class Presensi extends BaseController
 
         $tanggal_masuk = $this->request->getPost('tanggal_masuk');
         $jam_masuk = $this->request->getPost('jam_masuk');
+        $lat_masuk = $this->request->getPost('lat_masuk');
+        $lng_masuk = $this->request->getPost('lng_masuk');
 
         $this->presensiModel->save([
             'id_pegawai' => $id_pegawai,
@@ -158,6 +163,8 @@ class Presensi extends BaseController
             'tanggal_masuk' =>  $tanggal_masuk,
             'jam_masuk' => $jam_masuk,
             'foto_masuk' => $nama_foto,
+            'lat_masuk' => $lat_masuk,
+            'lng_masuk' => $lng_masuk,
         ]);
 
         session()->setFlashdata('berhasil', 'Presensi masuk berhasil disimpan');
@@ -268,6 +275,8 @@ class Presensi extends BaseController
         $tanggal_keluar = $this->request->getPost('tanggal_keluar');
         $jam_keluar = $this->request->getPost('jam_keluar');
         $keterangan = $this->request->getPost('keterangan');
+        $lat_keluar = $this->request->getPost('lat_keluar');
+        $lng_keluar = $this->request->getPost('lng_keluar');
 
         $this->presensiModel->save([
             'id' => $id_presensi,
@@ -275,6 +284,8 @@ class Presensi extends BaseController
             'tanggal_keluar' =>  $tanggal_keluar,
             'jam_keluar' => $jam_keluar,
             'foto_keluar' => $nama_foto,
+            'lat_keluar' => $lat_keluar,
+            'lng_keluar' => $lng_keluar,
             'keterangan' => $keterangan,
         ]);
 
@@ -635,13 +646,14 @@ class Presensi extends BaseController
         if (empty($tanggal)) {
             $tanggal = date('Y-m-d');
         }
-        $nama = trim((string) $this->request->getPost('nama'));
+        $nama           = trim((string) $this->request->getPost('nama'));
+        $filter_jabatan = trim((string) $this->request->getPost('filter_jabatan'));
         $post_unit = $this->request->getPost('id_unit');
         $id_unit = (in_groups('head') && $post_unit !== null && $post_unit !== '')
             ? (int) $post_unit
             : current_unit_id();
 
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama)['laporan-harian'];
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama, $filter_jabatan)['laporan-harian'];
 
         $html = view('presensi/laporan_pdf', [
             'judul' => 'Laporan Presensi Harian',
@@ -671,13 +683,14 @@ class Presensi extends BaseController
         if ($filter_bulan === '' || $filter_bulan === null) {
             $filter_bulan = date('m');
         }
-        $nama = trim((string) $this->request->getPost('nama'));
+        $nama           = trim((string) $this->request->getPost('nama'));
+        $filter_jabatan = trim((string) $this->request->getPost('filter_jabatan'));
         $post_unit = $this->request->getPost('id_unit');
         $id_unit_pdf = (in_groups('head') && $post_unit !== null && $post_unit !== '')
             ? (int) $post_unit
             : current_unit_id();
 
-        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_pdf, $nama)['laporan-bulanan'];
+        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_pdf, $nama, $filter_jabatan)['laporan-bulanan'];
 
         $html = view('presensi/laporan_pdf', [
             'judul' => 'Laporan Presensi Bulanan',
@@ -709,7 +722,12 @@ class Presensi extends BaseController
         if (empty($tanggal)) {
             $tanggal = date('Y-m-d');
         }
-        $nama = trim((string) $this->request->getGet('nama'));
+        $nama           = trim((string) $this->request->getGet('nama'));
+        $filter_jabatan = trim((string) $this->request->getGet('filter_jabatan'));
+        $per_page       = (int) $this->request->getGet('per_page');
+        if (!in_array($per_page, [10, 50, 100])) {
+            $per_page = 10;
+        }
 
         // Head can optionally filter by unit; admin is always scoped to own unit
         $filter_unit = $this->request->getGet('id_unit');
@@ -717,7 +735,7 @@ class Presensi extends BaseController
             ? (int) $filter_unit
             : current_unit_id();
 
-        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, false, 10, $id_unit, $nama);
+        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, false, $per_page, $id_unit, $nama, $filter_jabatan);
         $data_tanggal = date('d F Y', strtotime($tanggal));
 
         $data_presensi = $data_presensi_pegawai['laporan-harian'];
@@ -726,18 +744,21 @@ class Presensi extends BaseController
         $perPage = $data_presensi_pegawai['perPage'];
 
         $data = [
-            'title'        => 'Laporan Presensi Harian',
-            'user_profile' => $user_profile,
-            'data_tanggal' => $data_tanggal,
-            'data_presensi' => $data_presensi,
-            'currentPage'  => $currentPage,
-            'pager'        => $pager,
-            'total'        => $total,
-            'perPage'      => $perPage,
-            'tanggal'      => $tanggal,
-            'nama'         => $nama,
-            'daftar_unit'  => $this->unitModel->findAll(),
-            'filter_unit'  => $filter_unit ?? '',
+            'title'          => 'Laporan Presensi Harian',
+            'user_profile'   => $user_profile,
+            'data_tanggal'   => $data_tanggal,
+            'data_presensi'  => $data_presensi,
+            'currentPage'    => $currentPage,
+            'pager'          => $pager,
+            'total'          => $total,
+            'perPage'        => $perPage,
+            'tanggal'        => $tanggal,
+            'nama'           => $nama,
+            'daftar_unit'    => $this->unitModel->findAll(),
+            'filter_unit'    => $filter_unit ?? '',
+            'daftar_jabatan' => db_connect()->table('jabatan')->orderBy('jabatan', 'ASC')->get()->getResult(),
+            'filter_jabatan' => $filter_jabatan,
+            'per_page'       => $per_page,
         ];
 
         return view('presensi/laporan_presensi_harian', $data);
@@ -749,12 +770,13 @@ class Presensi extends BaseController
         if (empty($tanggal)) {
             $tanggal = date('Y-m-d');
         }
-        $nama = trim((string) $this->request->getPost('nama'));
+        $nama           = trim((string) $this->request->getPost('nama'));
+        $filter_jabatan = trim((string) $this->request->getPost('filter_jabatan'));
         $post_unit = $this->request->getPost('id_unit');
         $id_unit = (in_groups('head') && $post_unit !== null && $post_unit !== '')
             ? (int) $post_unit
             : current_unit_id();
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama)['laporan-harian'];
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama, $filter_jabatan)['laporan-harian'];
 
         $spreadsheet = new Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
@@ -888,7 +910,12 @@ class Presensi extends BaseController
         $currentPage = $this->request->getVar('page_bulanan') ? $this->request->getVar('page_bulanan') : 1;
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
-        $nama = trim((string) $this->request->getGet('nama'));
+        $nama           = trim((string) $this->request->getGet('nama'));
+        $filter_jabatan = trim((string) $this->request->getGet('filter_jabatan'));
+        $per_page       = (int) $this->request->getGet('per_page');
+        if (!in_array($per_page, [10, 50, 100])) {
+            $per_page = 10;
+        }
 
         // Head can optionally filter by unit; admin is always scoped to own unit
         $filter_unit = $this->request->getGet('id_unit');
@@ -896,7 +923,7 @@ class Presensi extends BaseController
             ? (int) $filter_unit
             : current_unit_id();
 
-        $data_presensi_pegawai = $this->presensiModel->getDataPresensiBulanan(false, false, false, 10, $id_unit, $nama);
+        $data_presensi_pegawai = $this->presensiModel->getDataPresensiBulanan(false, false, false, $per_page, $id_unit, $nama, $filter_jabatan);
 
         $filter_bulan = $this->request->getGet('filter_bulan');
         $filter_tahun = $this->request->getGet('filter_tahun');
@@ -907,7 +934,7 @@ class Presensi extends BaseController
             if ($filter_bulan === '') {
                 $filter_bulan = date('m');
             }
-            $data_presensi_pegawai = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, false, 10, $id_unit, $nama);
+            $data_presensi_pegawai = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, false, $per_page, $id_unit, $nama, $filter_jabatan);
         }
 
         if (empty($filter_bulan) || empty($filter_tahun)) {
@@ -936,20 +963,23 @@ class Presensi extends BaseController
         }
 
         $data = [
-            'title'        => 'Laporan Presensi Bulanan',
-            'user_profile' => $user_profile,
-            'tahun_mulai'  => $tahun_mulai,
-            'data_bulan'   => $data_bulan,
-            'data_presensi' => $data_presensi,
-            'currentPage'  => $currentPage,
-            'pager'        => $pager,
-            'total'        => $total,
-            'perPage'      => $perPage,
-            'filter_bulan' => $filter_bulan,
-            'filter_tahun' => $filter_tahun,
-            'nama'         => $nama,
-            'daftar_unit'  => $this->unitModel->findAll(),
-            'filter_unit'  => $filter_unit ?? '',
+            'title'          => 'Laporan Presensi Bulanan',
+            'user_profile'   => $user_profile,
+            'tahun_mulai'    => $tahun_mulai,
+            'data_bulan'     => $data_bulan,
+            'data_presensi'  => $data_presensi,
+            'currentPage'    => $currentPage,
+            'pager'          => $pager,
+            'total'          => $total,
+            'perPage'        => $perPage,
+            'filter_bulan'   => $filter_bulan,
+            'filter_tahun'   => $filter_tahun,
+            'nama'           => $nama,
+            'daftar_unit'    => $this->unitModel->findAll(),
+            'filter_unit'    => $filter_unit ?? '',
+            'daftar_jabatan' => db_connect()->table('jabatan')->orderBy('jabatan', 'ASC')->get()->getResult(),
+            'filter_jabatan' => $filter_jabatan,
+            'per_page'       => $per_page,
         ];
 
         return view('presensi/laporan_presensi_bulanan', $data);
@@ -1042,12 +1072,13 @@ class Presensi extends BaseController
         if ($filter_bulan === '') {
             $filter_bulan = date('m');
         }
-        $nama = trim((string) $this->request->getPost('nama'));
+        $nama           = trim((string) $this->request->getPost('nama'));
+        $filter_jabatan = trim((string) $this->request->getPost('filter_jabatan'));
         $post_unit = $this->request->getPost('id_unit');
         $id_unit_excel = (in_groups('head') && $post_unit !== null && $post_unit !== '')
             ? (int) $post_unit
             : current_unit_id();
-        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_excel, $nama)['laporan-bulanan'];
+        $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_excel, $nama, $filter_jabatan)['laporan-bulanan'];
 
         $spreadsheet = new Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();

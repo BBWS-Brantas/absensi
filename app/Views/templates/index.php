@@ -40,7 +40,7 @@
     </style>
 
     <!-- Website Icon -->
-    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/logo.png') ?>">
+    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/transparent-logo.png') ?>">
 
     <!-- jQuery -->
     <script src="<?= base_url('js/code.jquery.com_jquery-3.7.0.min.js') ?>"></script>

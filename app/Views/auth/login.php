@@ -29,7 +29,7 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
     </style>
 
     <!-- Website Icon -->
-    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/logo.png') ?>">
+    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/new-logo.png') ?>">
 </head>
 
 <body class="d-flex flex-column">
@@ -38,7 +38,7 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
         <div class="container container-tight py-4">
             <div class="text-center mb-4">
                 <a href="<?= base_url() ?>" class="navbar-brand navbar-brand-autodark align-items-center">
-                    <img src="<?= base_url('../assets/img/company/logo.png') ?>" height="75" alt="O-Present">
+                    <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" height="75" alt="O-Present">
                     <span><h1>BBWS Brantas Presensi</h1></span>
                 </a>
             </div>

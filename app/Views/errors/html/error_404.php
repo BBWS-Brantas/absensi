@@ -33,7 +33,7 @@
     </style>
 
     <!-- Website Icon -->
-    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/logo.png') ?>">
+    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/new-logo.png') ?>">
 </head>
 
 <body class=" border-top-wide border-primary d-flex flex-column">

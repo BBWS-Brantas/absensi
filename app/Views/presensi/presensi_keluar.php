@@ -30,6 +30,8 @@
                             <input type="hidden" name="id_lokasi_presensi" value="<?= $id_lokasi_presensi ?>">
                             <input type="hidden" name="tanggal_keluar" value="<?= $tanggal_keluar ?>">
                             <input type="hidden" name="jam_keluar" value="<?= $jam_keluar ?>">
+                            <input type="hidden" name="lat_keluar" value="<?= $latitude_pegawai ?>">
+                            <input type="hidden" name="lng_keluar" value="<?= $longitude_pegawai ?>">
                             <div class="mt-3">
                                 <video id="camera" autoplay playsinline class="w-100" style="border-radius:4px; background:#000;"></video>
                                 <canvas id="canvas" class="d-none"></canvas>
@@ -109,13 +111,21 @@
 
             // Logo — top-right
             const logo = new Image();
-            logo.src = '<?= base_url("assets/img/company/logo.png") ?>';
+            logo.src = '<?= base_url("assets/img/company/new-logo.png") ?>';
             await new Promise(function(r) { logo.onload = r; logo.onerror = r; });
             if (logo.naturalWidth > 0) {
                 const lh = Math.round(h * 0.09);
-                const lw = Math.round(logo.naturalWidth * (lh / logo.naturalHeight));
                 const lp = Math.round(w * 0.02);
-                ctx.drawImage(logo, w - lw - lp, lp, lw, lh);
+                const r  = lh / 2;
+                const cx = w - r - lp;
+                const cy = lp + r;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(logo, cx - r, cy - r, lh, lh);
+                ctx.restore();
             }
 
             // Text — bottom-right, right-aligned, white with drop shadow
@@ -126,6 +136,10 @@
             ctx.font = 'bold ' + fontSize + 'px Arial';
             ctx.textAlign = 'right';
             ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 1;
+            ctx.shadowOffsetY = 1;
             const startY = h - textLines.length * lineH - pad;
             textLines.forEach(function(line, i) {
                 ctx.fillText(line, w - pad, startY + (i + 1) * lineH - fontSize * 0.3);
