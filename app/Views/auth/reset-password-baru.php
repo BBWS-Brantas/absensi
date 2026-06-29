@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="description" content="Sistem Monitoring Presensi" />
     <title>Reset Password | O-Present</title>
     <!-- CSS files -->
     <link href="<?= base_url('../assets/css/tabler.min.css?1684106062') ?>" rel="stylesheet" />
@@ -25,7 +26,7 @@
     </style>
 
     <!-- Website Icon -->
-    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/logo.png') ?>">
+    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/new-logo.png') ?>">
 </head>
 
 <body class="d-flex flex-column">
@@ -34,8 +35,8 @@
         <div class="container container-tight py-4">
             <div class="text-center mb-4">
                 <a href="<?= base_url() ?>" class="navbar-brand navbar-brand-autodark align-items-center">
-                    <img src="<?= base_url('../assets/img/company/logo.png') ?>" height="75" alt="O-Present">
-                    <span><h1>BBWS Brantas Presensi</h1></span>
+                    <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" height="75" alt="O-Present">
+                    <span><h1>SIMPATI</h1></span>
                 </a>
             </div>
             <div class="card card-md">

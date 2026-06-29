@@ -9,7 +9,7 @@
                 <ul class="list-inline list-inline-dots mb-0">
                     <li class="list-inline-item">
                         Copyright &copy; <?= date('Y') ?>
-                        <a href="https://sda.pu.go.id/balai/bbwsbrantas/" target="_blank" class="link-secondary">IT | BBWS Brantas</a>.
+                        <a href="https://sda.pu.go.id/balai/bbwsbrantas/" target="_blank" class="link-secondary">IT | SIMPATI</a>.
                     </li>
                 </ul>
             </div>

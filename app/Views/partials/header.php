@@ -5,8 +5,8 @@
         </button>
         <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
             <a href="<?= base_url() ?>" class="text-decoration-none d-flex align-items-center">
-                <img src="<?= base_url('../assets/img/company/logo.png') ?>" width="110" height="32" alt="O-Present" class="navbar-brand-image">
-                <span class="ms-2">BBWS Brantas</span>
+                <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" width="110" height="32" alt="O-Present" class="navbar-brand-image">
+                <span class="ms-2">SIMPATI</span>
             </a>
         </h1>
         <div class="navbar-nav flex-row order-md-last">
