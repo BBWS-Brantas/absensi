@@ -105,21 +105,12 @@
 
             // Logo — top-right
             const logo = new Image();
-            logo.src = '<?= base_url("assets/img/company/new-logo.png") ?>';
+            logo.src = '<?= base_url("assets/img/company/logo.png") ?>';
             await new Promise(function(r) { logo.onload = r; logo.onerror = r; });
             if (logo.naturalWidth > 0) {
                 const lh = Math.round(h * 0.09);
                 const lp = Math.round(w * 0.02);
-                const r  = lh / 2;
-                const cx = w - r - lp;
-                const cy = lp + r;
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(cx, cy, r, 0, Math.PI * 2);
-                ctx.closePath();
-                ctx.clip();
-                ctx.drawImage(logo, cx - r, cy - r, lh, lh);
-                ctx.restore();
+                ctx.drawImage(logo, w - lh - lp, lp, lh, lh);
             }
 
             // Text — bottom-right, right-aligned, white with drop shadow
