@@ -63,7 +63,7 @@
                                             </div>
                                         </div>
                                         <div class="dropend">
-                                            <a class="dropdown-item dropdown-toggle <?= $title === 'Laporan Presensi Harian' || $title === 'Laporan Presensi Bulanan' ? 'active' : '' ?>" href="<?= base_url('/laporan-presensi-harian') ?>" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                                            <a class="dropdown-item dropdown-toggle <?= ($title === 'Laporan Presensi Harian' || $title === 'Laporan Presensi Bulanan' || $title === 'Laporan Presensi Pegawai') ? 'active' : '' ?>" href="<?= base_url('/laporan-presensi-harian') ?>" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
                                                 Laporan Presensi
                                             </a>
                                             <div class="dropdown-menu">
@@ -72,6 +72,9 @@
                                                 </a>
                                                 <a href="<?= base_url('/laporan-presensi-bulanan') ?>" class="dropdown-item">
                                                     Laporan Presensi Bulanan
+                                                </a>
+                                                <a href="<?= base_url('/rekap-absensi') ?>" class="dropdown-item">
+                                                    Laporan Presensi Pegawai
                                                 </a>
                                             </div>
                                         </div>
