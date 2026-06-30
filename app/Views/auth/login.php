@@ -37,10 +37,13 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
     <script src="<?= base_url('../assets/js/demo-theme.min.js?1684106062') ?>"></script>
     <div class="page page-center">
         <div class="container container-tight py-4">
-            <div class="text-center mb-4">
+            <div class="container mb-4 d-flex justify-content-center">
                 <a href="<?= base_url() ?>" class="navbar-brand navbar-brand-autodark align-items-center">
                     <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" height="75" alt="O-Present">
-                    <span><h1>SIMPATI</h1></span>
+                    <span>
+                        <h1 class="mb-0">SIMPATI</h1>
+                        <p class="text-muted mb-0" style="font-size: 0.80rem;">Sistem Monitoring Presensi TPM dan KMB</p>
+                    </span>
                 </a>
             </div>
             <div class="card card-md">

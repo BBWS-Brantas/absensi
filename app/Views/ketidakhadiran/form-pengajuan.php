@@ -35,7 +35,6 @@
                                 </label>
                                 <select name="tipe_ketidakhadiran" class="form-select <?= validation_show_error('tipe_ketidakhadiran') ? 'is-invalid' : '' ?>">
                                     <option value="">---Pilih Tipe Ketidakhadiran---</option>
-                                    <option value="CUTI" <?= old('tipe_ketidakhadiran') === 'CUTI' ? 'selected' : '' ?>>CUTI</option>
                                     <option value="IZIN" <?= old('tipe_ketidakhadiran') === 'IZIN' ? 'selected' : '' ?>>IZIN</option>
                                     <option value="SAKIT" <?= old('tipe_ketidakhadiran') === 'SAKIT' ? 'selected' : '' ?>>SAKIT</option>
                                 </select>
