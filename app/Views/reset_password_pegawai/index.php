@@ -10,7 +10,7 @@
                     <?= csrf_field() ?>
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Reset Password Pegawai</h3>
+                            <h3 class="card-title">Edit Password Pegawai</h3>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">

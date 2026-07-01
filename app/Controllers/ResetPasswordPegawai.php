@@ -6,9 +6,9 @@ use App\Models\PegawaiModel;
 use Myth\Auth\Models\UserModel;
 
 /**
- * Reset password pegawai oleh admin, dipanggil dari tombol pada daftar data pegawai.
+ * Edit password pegawai oleh admin atau head.
  * Pegawai ditentukan lewat username pada URL (bukan diketik manual).
- * Hanya bisa diakses role admin (lihat filter di Config/Routes.php).
+ * Admin hanya bisa mengakses pegawai dalam unitnya; head bisa mengakses semua unit.
  */
 class ResetPasswordPegawai extends BaseController
 {
@@ -20,8 +20,16 @@ class ResetPasswordPegawai extends BaseController
         $this->pegawaiModel = new PegawaiModel();
     }
 
+    private function pastikanDalamUnit($id_unit_pegawai)
+    {
+        $id_unit_scope = current_unit_id();
+        if ($id_unit_scope !== null && (int) $id_unit_pegawai !== $id_unit_scope) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data pegawai tidak ditemukan di unit Anda');
+        }
+    }
+
     /**
-     * Menampilkan form reset password untuk pegawai terpilih.
+     * Menampilkan form edit password untuk pegawai terpilih.
      */
     public function index($username)
     {
@@ -31,8 +39,10 @@ class ResetPasswordPegawai extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Pegawai ' . $username . ' Tidak Ditemukan');
         }
 
+        $this->pastikanDalamUnit($data_pegawai->id_unit);
+
         $data = [
-            'title'        => 'Reset Password ' . $data_pegawai->nama,
+            'title'        => 'Edit Password ' . $data_pegawai->nama,
             'user_profile' => $this->usersModel->getUserInfo(user_id()),
             'data_pegawai' => $data_pegawai,
         ];
@@ -45,6 +55,14 @@ class ResetPasswordPegawai extends BaseController
      */
     public function update($username)
     {
+        $data_pegawai = $this->pegawaiModel->getPegawai($username)['pegawai'];
+
+        if (empty($data_pegawai)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Pegawai ' . $username . ' Tidak Ditemukan');
+        }
+
+        $this->pastikanDalamUnit($data_pegawai->id_unit);
+
         $rules = [
             'new_password' => [
                 'rules'  => 'required',
@@ -73,11 +91,11 @@ class ResetPasswordPegawai extends BaseController
             return redirect()->to('/data-pegawai');
         }
 
-        // Entity User akan otomatis mem-hash password saat di-set (setPassword()).
+        // Entity User otomatis mem-hash password saat di-set (setPassword()).
         $user->password = $this->request->getVar('new_password');
         $users->save($user);
 
-        session()->setFlashdata('berhasil', 'Password untuk ' . $user->username . ' berhasil direset.');
+        session()->setFlashdata('berhasil', 'Password untuk ' . $user->username . ' berhasil diubah.');
         return redirect()->to('/data-pegawai');
     }
 }

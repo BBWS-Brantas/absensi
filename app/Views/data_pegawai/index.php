@@ -240,7 +240,7 @@
                                                 <a href="<?= base_url('/data-pegawai/edit/' . $pegawai->username) ?>" class="badge bg-warning">
                                                     edit
                                                 </a>
-                                                <?php if (in_groups('admin')) : ?>
+                                                <?php if (in_groups(['admin', 'head'])) : ?>
                                                     <a href="<?= base_url('/reset-password-pegawai/' . $pegawai->username) ?>" class="badge bg-info">
                                                         reset password
                                                     </a>
