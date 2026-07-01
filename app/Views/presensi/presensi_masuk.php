@@ -17,7 +17,7 @@
                     <div class="card-body m-auto">
                         <div id="my_result"></div>
                         <div class="mt-3"><?= date('d F Y', strtotime($tanggal_masuk)) . ' - ' . $jam_masuk ?></div>
-                        <form action="<?= base_url('/presensi-masuk/simpan') ?>" method="post" enctype="multipart/form-data">
+                        <form action="<?= base_url('/presensi-masuk/simpan') ?>" method="post" enctype="multipart/form-data" id="form-presensi-masuk">
                             <?= csrf_field() ?>
                             <input type="hidden" name="username" value="<?= $user_profile->username ?>">
                             <input type="hidden" name="id_pegawai" value="<?= $user_profile->id_pegawai ?>">

@@ -134,6 +134,12 @@ class Presensi extends BaseController
         $id_pegawai = $this->request->getPost('id_pegawai');
         $id_lokasi = $this->request->getPost('id_lokasi_presensi');
 
+        // Guard: cegah duplikasi jika form disubmit ulang (misal saat refresh setelah koneksi putus)
+        if ($this->presensiModel->cekPresensiMasuk($id_pegawai, date('Y-m-d'))) {
+            session()->setFlashdata('warning', 'Presensi masuk hari ini sudah tercatat.');
+            return redirect()->to(base_url());
+        }
+
         // Guard: lokasi harus ter-assign ke pegawai (cek sebelum menyimpan foto)
         if (empty($id_lokasi) || !$this->lokasiPegawaiModel->isAssigned($id_pegawai, $id_lokasi)) {
             session()->setFlashdata('gagal', 'Lokasi presensi tidak valid untuk akun Anda.');
@@ -252,6 +258,14 @@ class Presensi extends BaseController
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
         $id_lokasi = $this->request->getPost('id_lokasi_presensi');
+
+        // Guard: cegah duplikasi jika form disubmit ulang (misal saat refresh setelah koneksi putus)
+        $id_presensi_cek = $this->request->getPost('id_presensi');
+        $presensi_cek = $this->presensiModel->find($id_presensi_cek);
+        if ($presensi_cek && !empty($presensi_cek->tanggal_keluar)) {
+            session()->setFlashdata('warning', 'Presensi keluar hari ini sudah tercatat.');
+            return redirect()->to(base_url());
+        }
 
         // Guard: lokasi keluar harus ter-assign ke pegawai (cek sebelum menyimpan foto)
         if (empty($id_lokasi) || !$this->lokasiPegawaiModel->isAssigned($user_profile->id_pegawai, $id_lokasi)) {
