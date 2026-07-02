@@ -1,9 +1,5 @@
-<?php
-
-use PhpOffice\PhpSpreadsheet\Helper\Size;
-?>
 <!doctype html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="utf-8" />
@@ -11,15 +7,11 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta name="description" content="Sistem Monitoring Presensi" />
     <title>BBWS | Present</title>
-    <!-- CSS files -->
+    <link rel="preconnect" href="https://rsms.me" crossorigin />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <link href="<?= base_url('../assets/css/tabler.min.css?1684106062') ?>" rel="stylesheet" />
-    <link href="<?= base_url('../assets/css/tabler-flags.min.css?1684106062') ?>" rel="stylesheet" />
-    <link href="<?= base_url('../assets/css/tabler-payments.min.css?1684106062') ?>" rel="stylesheet" />
-    <link href="<?= base_url('../assets/css/tabler-vendors.min.css?1684106062') ?>" rel="stylesheet" />
     <link href="<?= base_url('../assets/css/demo.min.css?1684106062') ?>" rel="stylesheet" />
     <style>
-        @import url('https://rsms.me/inter/inter.css');
-
         :root {
             --tblr-font-sans-serif: 'Inter Var', -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
         }
@@ -28,9 +20,7 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
             font-feature-settings: "cv03", "cv04", "cv11";
         }
     </style>
-
-    <!-- Website Icon -->
-    <link rel="website icon" type="png" href="<?= base_url('../assets/img/company/new-logo.png') ?>">
+    <link rel="icon" type="image/png" href="<?= base_url('../assets/img/company/new-logo.png') ?>">
 </head>
 
 <body class="d-flex flex-column">
@@ -39,7 +29,7 @@ use PhpOffice\PhpSpreadsheet\Helper\Size;
         <div class="container container-tight py-4">
             <div class="container mb-4 d-flex justify-content-center">
                 <a href="<?= base_url() ?>" class="navbar-brand navbar-brand-autodark align-items-center">
-                    <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" height="75" alt="O-Present">
+                    <img src="<?= base_url('../assets/img/company/new-logo.png') ?>" width="75" height="75" alt="O-Present" fetchpriority="high">
                     <span>
                         <h1 class="mb-0">SIMPATI</h1>
                         <p class="text-muted mb-0" style="font-size: 0.80rem;">Sistem Monitoring Presensi TPM dan KMB</p>
