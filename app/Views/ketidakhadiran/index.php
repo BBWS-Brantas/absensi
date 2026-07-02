@@ -173,7 +173,7 @@
                                                         Hapus
                                                     </a>
                                                 <?php else : ?>
-                                                    <p>Tidak bisa ubah data.</p>
+                                                    <span>-</span>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>

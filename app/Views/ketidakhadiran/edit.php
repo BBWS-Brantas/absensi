@@ -18,7 +18,7 @@
         <form action="<?= base_url('ketidakhadiran/update') ?>" method="post" enctype="multipart/form-data">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= $data_pengajuan->id ?>">
-            <div class="row row-deck row-cards align-items-stretch">
+            <div class="row row-deck row-cards align-items-start">
                 <div class="col-lg-6 col-sm-12">
                     <div class="card">
                         <div class="card-body">
@@ -90,6 +90,29 @@
                                 <?php if (validation_show_error('file')) : ?>
                                     <div class="invalid-feedback">
                                         <?= validation_show_error('file') ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($data_pengajuan->file)) : ?>
+                                    <?php
+                                        $fileUrl = base_url('assets/file/surat_keterangan_ketidakhadiran/' . $data_pengajuan->file);
+                                        $ext = strtolower(pathinfo($data_pengajuan->file, PATHINFO_EXTENSION));
+                                    ?>
+                                    <div class="mt-3">
+                                        <p class="text-muted mb-1" style="font-size:.8rem;">File saat ini — upload baru untuk mengganti</p>
+                                        <a href="<?= $fileUrl ?>" target="_blank" class="btn btn-sm btn-outline-secondary mb-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                                                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+                                                <path d="M12 17v-6" /><path d="M9.5 14.5l2.5 2.5l2.5 -2.5" />
+                                            </svg>
+                                            Download File
+                                        </a>
+                                        <?php if (in_array($ext, ['jpg', 'jpeg', 'png'])) : ?>
+                                            <img src="<?= $fileUrl ?>" alt="Surat Keterangan" class="img-fluid rounded border d-block">
+                                        <?php elseif ($ext === 'pdf') : ?>
+                                            <iframe src="<?= $fileUrl ?>" width="100%" height="400" class="rounded border" style="min-height:400px;"></iframe>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                             </div>

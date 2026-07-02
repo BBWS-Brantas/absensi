@@ -333,14 +333,7 @@ class Ketidakhadiran extends BaseController
         $nama_file = 'SuratKeterangan-' . user()->username . '-' . date('Y-m-d-His') . '.' . $ext;
         $file->move(FCPATH . 'assets/file/surat_keterangan_ketidakhadiran/', $nama_file);
 
-        // Menentukan status pengajuan
-        // Jika tipe ketidakhadiran adalah sakit, maka langsung APPROVED
         $tipe_ketidakhadiran = $this->request->getPost('tipe_ketidakhadiran');
-        if ($tipe_ketidakhadiran == "SAKIT") {
-            $status_pengajuan = "APPROVED";
-        } else {
-            $status_pengajuan = "PENDING";
-        }
 
         $this->ketidakhadiranModel->save([
             'id_pegawai' => $this->request->getVar('id_pegawai'),
@@ -349,7 +342,7 @@ class Ketidakhadiran extends BaseController
             'tanggal_berakhir' => $this->request->getVar('tanggal_berakhir'),
             'deskripsi' => $this->request->getVar('deskripsi'),
             'file' => $nama_file,
-            'status_pengajuan' => $status_pengajuan,
+            'status_pengajuan' => 'PENDING',
         ]);
 
         // Jika sudah melakukan presensi masuk lalu mengajukan izin sakit
@@ -473,14 +466,7 @@ class Ketidakhadiran extends BaseController
             unlink('assets/file/surat_keterangan_ketidakhadiran/' . $this->request->getVar('file_old'));
         }
 
-        // Menentukan status pengajuan
-        // Jika tipe ketidakhadiran adalah sakit, maka langsung APPROVED
         $tipe_ketidakhadiran = $this->request->getPost('tipe_ketidakhadiran');
-        if ($tipe_ketidakhadiran == "SAKIT") {
-            $status_pengajuan = "APPROVED";
-        } else {
-            $status_pengajuan = "PENDING";
-        }
 
         $this->ketidakhadiranModel->save([
             'id' => $this->request->getVar('id'),
@@ -490,7 +476,7 @@ class Ketidakhadiran extends BaseController
             'tanggal_berakhir' => $this->request->getVar('tanggal_berakhir'),
             'deskripsi' => $this->request->getVar('deskripsi'),
             'file' => $nama_file,
-            'status_pengajuan' => $status_pengajuan,
+            'status_pengajuan' => 'PENDING',
         ]);
 
         // Jika sudah melakukan presensi masuk lalu mengajukan izin sakit
@@ -778,7 +764,7 @@ class Ketidakhadiran extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Data Pengajuan Tidak Ditemukan');
         }
 
-        if ($data_ketidakhadiran->tanggal_mulai <= date('Y-m-d')) {
+        if ($data_ketidakhadiran->tanggal_mulai < date('Y-m-d')) {
             session()->setFlashdata('info', 'Tanggal ketidakhadiran sudah terlewat. Tidak dapat merubah status pengajuan.');
             return redirect()->to(base_url('/kelola-ketidakhadiran'));
         }
