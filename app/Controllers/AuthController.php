@@ -80,6 +80,11 @@ class AuthController extends Controller
         $password = $this->request->getPost('password');
         $remember = (bool) $this->request->getPost('remember');
 
+        $throttler = service('throttler');
+        if ($throttler->check(md5('login:' . strtolower($login)), 5, MINUTE) === false) {
+            return redirect()->back()->withInput()->with('error', 'Terlalu banyak percobaan login. Silakan coba lagi dalam ' . $throttler->getTokentime() . ' detik.');
+        }
+
         // Determine credential type
         $type = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
