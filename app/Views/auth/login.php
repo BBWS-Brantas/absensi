@@ -7,24 +7,68 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <meta name="description" content="Sistem Monitoring Presensi" />
     <title>BBWS | Present</title>
-    <link rel="preconnect" href="https://rsms.me" crossorigin />
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-    <link href="<?= base_url('../assets/css/tabler.min.css?1684106062') ?>" rel="stylesheet" />
-    <link href="<?= base_url('../assets/css/demo.min.css?1684106062') ?>" rel="stylesheet" />
-    <style>
-        :root {
-            --tblr-font-sans-serif: 'Inter Var', -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
-        }
-
-        body {
-            font-feature-settings: "cv03", "cv04", "cv11";
-        }
-    </style>
     <link rel="icon" type="image/png" href="<?= base_url('../assets/img/company/new-logo.png') ?>">
+
+    <!-- Critical CSS: render the login card immediately, without waiting for tabler.min.css (530 KB) -->
+    <style>
+        *,*::before,*::after{box-sizing:border-box}
+        html{font-size:16px}
+        body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'San Francisco','Segoe UI',Roboto,'Helvetica Neue',sans-serif;font-size:.9375rem;font-weight:400;line-height:1.5;color:#182433;background-color:#f6f8fb;font-feature-settings:"cv03","cv04","cv11"}
+        [data-bs-theme=dark] body{color:#fcfdfe;background-color:#040a11}
+        .d-flex{display:flex!important}.flex-column{flex-direction:column!important}
+        .justify-content-center{justify-content:center!important}.align-items-center{align-items:center!important}
+        .py-4{padding-top:1.5rem!important;padding-bottom:1.5rem!important}
+        .mb-0{margin-bottom:0!important}.mb-2{margin-bottom:.5rem!important}.mb-3{margin-bottom:1rem!important}.mb-4{margin-bottom:1.5rem!important}
+        .w-100{width:100%!important}.text-center{text-align:center!important}
+        .text-muted{color:#616876!important}
+        [data-bs-theme=dark] .text-muted{color:#a0acb8!important}
+        .page{display:flex;flex-direction:column;min-height:100vh}
+        .page-center{justify-content:center;align-items:center}
+        .container{width:100%;padding-right:1rem;padding-left:1rem;margin-right:auto;margin-left:auto}
+        .container-tight{max-width:30rem!important}
+        .navbar-brand{display:inline-flex;align-items:center;gap:.75rem;font-weight:700;text-decoration:none;color:inherit}
+        h1{font-size:1.5rem;margin:0}
+        .h2{font-size:1.3125rem;font-weight:600;line-height:1.2;margin-top:0;margin-bottom:.5rem}
+        .card{position:relative;display:flex;flex-direction:column;background-color:#fff;border:1px solid #dadfe5;border-radius:4px}
+        [data-bs-theme=dark] .card{background-color:#1a2332;border-color:#1f2e41}
+        .card-body{flex:1 1 auto;padding:1.25rem}
+        .card-md .card-body{padding:2rem}
+        .form-label{display:block;margin-bottom:.375rem;font-size:.875rem;font-weight:500}
+        .form-control{display:block;width:100%;padding:.4375rem .75rem;font-size:.9375rem;font-weight:400;line-height:1.5;color:#182433;background-color:#fff;border:1px solid #c8cdd2;border-radius:4px;appearance:none;transition:border-color .15s ease-in-out,box-shadow .15s ease-in-out}
+        [data-bs-theme=dark] .form-control{color:#fcfdfe;background-color:#1a2332;border-color:#1f2e41}
+        .form-control:focus{border-color:#90b5d9;outline:0;box-shadow:0 0 0 .25rem rgba(32,107,196,.25)}
+        .form-control.is-invalid{border-color:#d63939}
+        .invalid-feedback{display:none;width:100%;margin-top:.25rem;font-size:.875em;color:#d63939}
+        .is-invalid~.invalid-feedback,.is-invalid+.invalid-feedback{display:block}
+        .form-footer{margin-top:1.25rem}
+        .input-group{position:relative;display:flex;flex-wrap:wrap;align-items:stretch;width:100%}
+        .input-group>.form-control{flex:1 1 auto;width:1%;min-width:0}
+        .input-group-flat>.form-control{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
+        .input-group-text{display:flex;align-items:center;padding:.4375rem .75rem;font-size:.9375rem;line-height:1.5;color:#616876;background-color:#f6f8fb;border:1px solid #c8cdd2;border-left:0;border-radius:4px;border-top-left-radius:0;border-bottom-left-radius:0}
+        [data-bs-theme=dark] .input-group-text{color:#a0acb8;background-color:#0d1626;border-color:#1f2e41}
+        .btn{display:inline-flex;align-items:center;justify-content:center;font-size:.875rem;font-weight:500;line-height:1.4285714;padding:.4375rem 1rem;border:1px solid transparent;border-radius:4px;cursor:pointer;user-select:none;text-decoration:none;transition:color .15s,background-color .15s,border-color .15s}
+        .btn-primary{color:#fff;background-color:#206bc4;border-color:#206bc4}
+        .btn-primary:hover{color:#fff;background-color:#1b5aa4;border-color:#195299}
+        .alert{padding:.75rem 1rem;margin-bottom:1rem;border:1px solid transparent;border-radius:4px}
+        .alert-danger{color:#a11f1f;background-color:#fce8e8;border-color:#f5c2c2}
+        .alert-success{color:#1d6a3a;background-color:#d1f0dd;border-color:#b1e1c2}
+        [data-bs-theme=dark] .alert-danger{color:#f07070;background-color:#2c1010;border-color:#5c2020}
+        [data-bs-theme=dark] .alert-success{color:#5fd38d;background-color:#0d2c1c;border-color:#1c5a38}
+    </style>
+
+    <!-- Non-blocking load of full Tabler CSS — applied after FCP, so no render-blocking penalty -->
+    <link rel="preload" href="<?= base_url('../assets/css/tabler.min.css?1684106062') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="<?= base_url('../assets/css/demo.min.css?1684106062') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link href="<?= base_url('../assets/css/tabler.min.css?1684106062') ?>" rel="stylesheet">
+        <link href="<?= base_url('../assets/css/demo.min.css?1684106062') ?>" rel="stylesheet">
+    </noscript>
 </head>
 
 <body class="d-flex flex-column">
-    <script src="<?= base_url('../assets/js/demo-theme.min.js?1684106062') ?>"></script>
+    <!-- Inlined: sets dark/light theme from localStorage before first paint (687 B, must be synchronous) -->
+    <script>!function(e){"function"==typeof define&&define.amd?define(e):e()}((function(){"use strict";var e,t="tablerTheme",a=new Proxy(new URLSearchParams(window.location.search),{get:function(e,t){return e.get(t)}});if(a.theme)localStorage.setItem(t,a.theme),e=a.theme;else{var n=localStorage.getItem(t);e=n||"light"}"dark"===e?document.body.setAttribute("data-bs-theme",e):document.body.removeAttribute("data-bs-theme")}));</script>
+
     <div class="page page-center">
         <div class="container container-tight py-4">
             <div class="container mb-4 d-flex justify-content-center">
@@ -96,13 +140,9 @@
                     </form>
                 </div>
             </div>
-            <!-- <div class="text-center text-muted mt-3">
-                <a href="<?= site_url('reset-password') ?>">Reset Password</a>
-            </div> -->
         </div>
     </div>
-    <!-- Libs JS -->
-    <!-- Tabler Core -->
+
     <script src="<?= base_url('../assets/js/tabler.min.js?1684106062') ?>" defer></script>
     <script src="<?= base_url('../assets/js/demo.min.js?1684106062') ?>" defer></script>
     <script>
@@ -129,7 +169,6 @@
             var EMAIL_CHARS = /[^a-zA-Z0-9._%+\-@]/g;
             var EMAIL_FORMAT = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
-            // Strip any character that cannot appear in a standard email as the user types
             loginInput.addEventListener('input', function () {
                 var start = this.selectionStart;
                 var before = this.value;
@@ -140,7 +179,6 @@
                     this.setSelectionRange(Math.max(0, start - removed), Math.max(0, start - removed));
                 }
 
-                // Clear client-side error once the value looks valid
                 if (this.dataset.clientError && EMAIL_FORMAT.test(this.value.trim())) {
                     this.classList.remove('is-invalid');
                     var fb = this.parentElement.querySelector('.invalid-feedback');
@@ -149,7 +187,6 @@
                 }
             });
 
-            // Validate format on submit before the request goes out
             form.addEventListener('submit', function (e) {
                 var val = loginInput.value.trim();
                 if (!EMAIL_FORMAT.test(val)) {
