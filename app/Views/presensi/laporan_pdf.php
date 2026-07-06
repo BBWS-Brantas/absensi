@@ -48,6 +48,11 @@
         td.left {
             text-align: left;
         }
+
+        img.foto {
+            width: 55px;
+            height: auto;
+        }
     </style>
 </head>
 
@@ -71,8 +76,10 @@
                 <th>Jabatan</th>
                 <th>Tanggal</th>
                 <th>Jam Masuk</th>
+                <th>Foto Masuk</th>
                 <th>Koordinat Masuk</th>
                 <th>Jam Pulang</th>
+                <th>Foto Pulang</th>
                 <th>Koordinat Pulang</th>
                 <th>Total Jam Kerja</th>
                 <th>Total Keterlambatan</th>
@@ -89,8 +96,10 @@
                         <td class="left"><?= esc($r['jabatan']) ?></td>
                         <td><?= esc($r['tanggal']) ?></td>
                         <td><?= esc($r['jam_masuk']) ?></td>
+                        <td><?= $r['foto_masuk'] ? '<img class="foto" src="' . $r['foto_masuk'] . '">' : '-' ?></td>
                         <td><?= esc($r['koordinat_masuk']) ?></td>
                         <td><?= esc($r['jam_keluar']) ?></td>
+                        <td><?= $r['foto_keluar'] ? '<img class="foto" src="' . $r['foto_keluar'] . '">' : '-' ?></td>
                         <td><?= esc($r['koordinat_keluar']) ?></td>
                         <td><?= esc($r['total_jam_kerja']) ?></td>
                         <td><?= esc($r['total_keterlambatan']) ?></td>
@@ -99,7 +108,7 @@
                 <?php endforeach; ?>
             <?php else : ?>
                 <tr>
-                    <td colspan="12">Tidak ada data presensi.</td>
+                    <td colspan="14">Tidak ada data presensi.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

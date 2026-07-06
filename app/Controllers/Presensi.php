@@ -653,6 +653,8 @@ class Presensi extends BaseController
                 'total_jam_kerja'     => $total_jam_kerja_format,
                 'total_keterlambatan' => $total_keterlambatan_format,
                 'keterangan'          => (! empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-',
+                'foto_masuk'          => $this->fotoDataUri('masuk', $data->foto_masuk),
+                'foto_keluar'         => $belum_keluar ? null : $this->fotoDataUri('keluar', $data->foto_keluar),
             ];
         }
 
