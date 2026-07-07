@@ -523,6 +523,8 @@ class Presensi extends BaseController
 
     public function rekapPresensiPegawaiPdf()
     {
+        ini_set('memory_limit', '512M');
+
         $data_pegawai = $this->pegawaiModel->getPegawai(user()->username)['pegawai'];
 
         $tanggal_awal = $this->request->getPost('tanggal_awal');
@@ -663,6 +665,8 @@ class Presensi extends BaseController
 
     public function laporanHarianPdf()
     {
+        ini_set('memory_limit', '512M');
+
         $tanggal = $this->request->getPost('tanggal');
         if (empty($tanggal)) {
             $tanggal = date('Y-m-d');
@@ -696,6 +700,8 @@ class Presensi extends BaseController
 
     public function laporanBulananPdf()
     {
+        ini_set('memory_limit', '512M');
+
         $filter_bulan = $this->request->getPost('filter_bulan');
         $filter_tahun = $this->request->getPost('filter_tahun');
         if ($filter_tahun === '' || $filter_tahun === null) {
