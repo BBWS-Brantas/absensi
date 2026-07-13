@@ -49,9 +49,15 @@
             text-align: left;
         }
 
+        th.sub {
+            font-style: italic;
+            font-weight: normal;
+            font-size: 8px;
+        }
+
         img.foto {
-            width: 55px;
-            height: auto;
+            width: 4cm;
+            height: 6cm;
         }
     </style>
 </head>
@@ -70,20 +76,17 @@
     <table class="data">
         <thead>
             <tr>
-                <th>No</th>
-                <th>Nama TPM</th>
-                <th>Unit Operasional</th>
-                <th>Jabatan</th>
-                <th>Tanggal</th>
-                <th>Jam Masuk</th>
+                <th rowspan="2">No</th>
+                <th rowspan="2">Nama TPM</th>
+                <th rowspan="2">Unit Operasional</th>
+                <th rowspan="2">Jabatan</th>
+                <th rowspan="2">Tanggal</th>
                 <th>Foto Masuk</th>
-                <th>Koordinat Masuk</th>
-                <th>Jam Pulang</th>
-                <th>Foto Pulang</th>
-                <th>Koordinat Pulang</th>
-                <th>Total Jam Kerja</th>
-                <th>Total Keterlambatan</th>
-                <th>Keterangan Kegiatan</th>
+                <th>Foto Keluar</th>
+            </tr>
+            <tr>
+                <th class="sub">Ukuran Foto 4 x 6</th>
+                <th class="sub">Ukuran Foto 4 x 6</th>
             </tr>
         </thead>
         <tbody>
@@ -95,20 +98,13 @@
                         <td class="left"><?= esc($r['nama_unit']) ?></td>
                         <td class="left"><?= esc($r['jabatan']) ?></td>
                         <td><?= esc($r['tanggal']) ?></td>
-                        <td><?= esc($r['jam_masuk']) ?></td>
                         <td><?= $r['foto_masuk'] ? '<img class="foto" src="' . $r['foto_masuk'] . '">' : '-' ?></td>
-                        <td><?= esc($r['koordinat_masuk']) ?></td>
-                        <td><?= esc($r['jam_keluar']) ?></td>
                         <td><?= $r['foto_keluar'] ? '<img class="foto" src="' . $r['foto_keluar'] . '">' : '-' ?></td>
-                        <td><?= esc($r['koordinat_keluar']) ?></td>
-                        <td><?= esc($r['total_jam_kerja']) ?></td>
-                        <td><?= esc($r['total_keterlambatan']) ?></td>
-                        <td class="left"><?= esc($r['keterangan']) ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php else : ?>
                 <tr>
-                    <td colspan="14">Tidak ada data presensi.</td>
+                    <td colspan="7">Tidak ada data presensi.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

@@ -42,7 +42,13 @@ class Pegawai extends BaseController
         $this->usersRoleModel = new UsersRoleModel();
         $this->permissionModel = new PermissionModel();
         $this->foto_default = 'default.jpg';
+
         $this->auth = new AuthController();
+        $this->auth->initController(
+            service('request'),
+            service('response'),
+            service('logger')
+        );
     }
 
     /**

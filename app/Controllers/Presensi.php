@@ -23,6 +23,33 @@ class Presensi extends BaseController
     protected $unitModel;
     protected $jabatanModel;
 
+    /**
+     * Jumlah maksimal baris data per file PDF sebelum dipecah (chunking).
+     * Dengan foto presensi yang sudah dikompres (~100KB), 500 baris x 2 foto
+     * masih jauh di bawah memory_limit 1024M, sambil menyisakan headroom aman.
+     */
+    private const CHUNK_SIZE_PDF = 500;
+
+    /**
+     * Dimensi maksimal (px) untuk foto yang ditanam ke PDF.
+     * Foto presensi dari HP biasanya beresolusi besar (misal 3000x4000px)
+     * walau ukuran filenya sudah "kecil" (~100KB). dompdf tetap harus
+     * decode di resolusi asli sebelum di-downscale oleh CSS, jadi ini
+     * dikecilkan dulu di server sebelum ditanam sebagai base64.
+     */
+    private const FOTO_PDF_MAX_DIMENSI = 300;
+    private const FOTO_PDF_QUALITY = 70;
+
+    /**
+     * Dimensi kanvas (px) untuk foto di laporan_pdf.php. Rasio HARUS sama dengan
+     * kotak CSS (.img.foto: 4cm x 6cm = 2:3), supaya dompdf yang stretch-to-fill
+     * tanpa dukungan object-fit tidak mendistorsi gambar. Foto sumber di-fit
+     * "contain" (tanpa crop, supaya watermark logo/GPS di foto tidak terpotong)
+     * lalu dipadding putih di sisa kanvas.
+     */
+    private const FOTO_PDF_BOX_WIDTH = 200; // px, rasio 200:300 = 2:3 = 4cm:6cm
+    private const FOTO_PDF_BOX_HEIGHT = 300; // px
+
     public function __construct()
     {
         $this->usersModel = new UsersModel();
@@ -523,7 +550,8 @@ class Presensi extends BaseController
 
     public function rekapPresensiPegawaiPdf()
     {
-        ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300); // TAMBAHAN: cegah "Maximum execution time exceeded" saat render dompdf
 
         $data_pegawai = $this->pegawaiModel->getPegawai(user()->username)['pegawai'];
 
@@ -539,6 +567,222 @@ class Presensi extends BaseController
 
         $data_presensi = $this->presensiModel->getDataPresensi($data_pegawai->id_pegawai, $tanggal_awal, $tanggal_akhir, true, 10, $nama)['rekap-presensi'];
 
+        $namaFileDasar = 'Rekap Presensi Pegawai_' . $data_pegawai->nama . '_'
+            . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir));
+
+        return $this->generatePdfChunked(
+            $data_presensi,
+            [$this, 'buildRekapRows'],
+            'presensi/rekap_pdf',
+            [
+                'data_pegawai'  => $data_pegawai,
+                'tanggal_awal'  => $tanggal_awal,
+                'tanggal_akhir' => $tanggal_akhir,
+            ],
+            $namaFileDasar
+        );
+    }
+
+    /**
+     * Membaca file foto presensi, mengecilkan resolusinya (jika perlu), lalu mengubahnya
+     * menjadi data URI base64 agar bisa ditanam langsung di PDF (dompdf).
+     *
+     * TAMBAHAN: foto di-resize ke maksimal FOTO_PDF_MAX_DIMENSI px dan hasilnya
+     * di-cache ke disk (WRITEPATH/cache/foto_presensi_pdf/...) supaya proses resize
+     * hanya terjadi sekali per foto, bukan setiap kali PDF di-generate ulang.
+     * Ini penting karena foto dari kamera HP bisa beresolusi sangat besar walau
+     * ukuran filenya sudah dikompres kecil (~100KB) — dompdf tetap harus decode
+     * di resolusi asli sebelum di-downscale oleh CSS, dan itu yang paling banyak
+     * memakan waktu render saat jumlah foto ratusan/ribuan.
+     *
+     * Mengembalikan null bila file sumber tidak ada.
+     */
+    private function fotoDataUri($jenis, $namafile)
+    {
+        if (empty($namafile) || $namafile === '-') {
+            return null;
+        }
+
+        $path = FCPATH . 'assets/img/foto_presensi/' . $jenis . '/' . $namafile;
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $cacheDir = WRITEPATH . 'cache/foto_presensi_pdf/' . $jenis . '/';
+        if (! is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        $cachePath = $cacheDir . pathinfo($namafile, PATHINFO_FILENAME) . '.jpg';
+
+        // Kalau versi cache belum ada (atau file asli lebih baru dari cache), buat/perbarui cache-nya
+        if (! is_file($cachePath) || filemtime($cachePath) < filemtime($path)) {
+            $resized = $this->resizeFotoUntukPdf($path, $cachePath, self::FOTO_PDF_MAX_DIMENSI, self::FOTO_PDF_QUALITY);
+
+            // Kalau gagal resize (misal ekstensi tidak didukung GD), fallback ke file asli tanpa cache
+            if (! $resized) {
+                $mime = function_exists('mime_content_type') ? (mime_content_type($path) ?: 'image/jpeg') : 'image/jpeg';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+            }
+        }
+
+        return 'data:image/jpeg;base64,' . base64_encode(file_get_contents($cachePath));
+    }
+
+    /**
+     * Sama seperti fotoDataUri(), tapi untuk laporan_pdf.php (Laporan Harian/Bulanan)
+     * yang menampilkan foto dalam kotak tetap "Ukuran Foto 4 x 6". Memakai direktori
+     * cache terpisah (foto_presensi_pdf_box/) supaya tidak bentrok dengan cache
+     * fotoDataUri() yang dipakai rekap_pdf.php.
+     */
+    private function fotoDataUriBox($jenis, $namafile)
+    {
+        if (empty($namafile) || $namafile === '-') {
+            return null;
+        }
+
+        $path = FCPATH . 'assets/img/foto_presensi/' . $jenis . '/' . $namafile;
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $cacheDir = WRITEPATH . 'cache/foto_presensi_pdf_box/' . $jenis . '/';
+        if (! is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        $cachePath = $cacheDir . pathinfo($namafile, PATHINFO_FILENAME) . '.jpg';
+
+        if (! is_file($cachePath) || filemtime($cachePath) < filemtime($path)) {
+            $resized = $this->resizeFotoUntukPdfBox($path, $cachePath, self::FOTO_PDF_BOX_WIDTH, self::FOTO_PDF_BOX_HEIGHT, self::FOTO_PDF_QUALITY);
+
+            if (! $resized) {
+                $mime = function_exists('mime_content_type') ? (mime_content_type($path) ?: 'image/jpeg') : 'image/jpeg';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+            }
+        }
+
+        return 'data:image/jpeg;base64,' . base64_encode(file_get_contents($cachePath));
+    }
+
+    /**
+     * Resize gambar (jpg/jpeg/png) menggunakan GD, simpan sebagai JPEG ke $tujuan.
+     * Mengembalikan true bila berhasil, false bila gagal (misal ekstensi GD tidak tersedia).
+     */
+    private function resizeFotoUntukPdf(string $sumber, string $tujuan, int $maxDimensi, int $quality): bool
+    {
+        if (! function_exists('imagecreatetruecolor')) {
+            // Ekstensi GD tidak aktif di server
+            return false;
+        }
+
+        $info = @getimagesize($sumber);
+        if ($info === false) {
+            return false;
+        }
+
+        [$width, $height, $type] = $info;
+
+        switch ($type) {
+            case IMAGETYPE_JPEG:
+                $src = @imagecreatefromjpeg($sumber);
+                break;
+            case IMAGETYPE_PNG:
+                $src = @imagecreatefrompng($sumber);
+                break;
+            default:
+                $src = null;
+        }
+
+        if (! $src) {
+            return false;
+        }
+
+        // Jangan perbesar gambar yang sudah kecil, cukup batasi maksimalnya
+        $ratio = min($maxDimensi / $width, $maxDimensi / $height, 1);
+        $newWidth = max(1, (int) round($width * $ratio));
+        $newHeight = max(1, (int) round($height * $ratio));
+
+        $dst = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Latar putih (untuk PNG transparan supaya tidak jadi hitam saat dikonversi ke JPEG)
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefill($dst, 0, 0, $white);
+
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+        $ok = imagejpeg($dst, $tujuan, $quality);
+
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        return $ok;
+    }
+
+    /**
+     * Sama seperti resizeFotoUntukPdf(), tapi menghasilkan kanvas berukuran TETAP
+     * ($boxWidth x $boxHeight) dengan foto di-fit "contain" (diperkecil utuh tanpa
+     * dipotong) lalu ditengahkan, sisa ruang dipadding putih. Dipakai supaya foto
+     * landscape (4:3) bisa masuk ke kotak portrait "Ukuran Foto 4 x 6" (2:3) tanpa
+     * memotong watermark logo/GPS/alamat yang ada di pinggir foto, dan tanpa
+     * terdistorsi (karena dompdf tidak mendukung CSS object-fit).
+     */
+    private function resizeFotoUntukPdfBox(string $sumber, string $tujuan, int $boxWidth, int $boxHeight, int $quality): bool
+    {
+        if (! function_exists('imagecreatetruecolor')) {
+            return false;
+        }
+
+        $info = @getimagesize($sumber);
+        if ($info === false) {
+            return false;
+        }
+
+        [$width, $height, $type] = $info;
+
+        switch ($type) {
+            case IMAGETYPE_JPEG:
+                $src = @imagecreatefromjpeg($sumber);
+                break;
+            case IMAGETYPE_PNG:
+                $src = @imagecreatefrompng($sumber);
+                break;
+            default:
+                $src = null;
+        }
+
+        if (! $src) {
+            return false;
+        }
+
+        // Contain: perkecil utuh (tanpa crop) supaya muat di dalam kotak, jangan diperbesar
+        $scale = min($boxWidth / $width, $boxHeight / $height, 1);
+        $newWidth = max(1, (int) round($width * $scale));
+        $newHeight = max(1, (int) round($height * $scale));
+
+        // Tengahkan hasil resize di dalam kanvas kotak tetap
+        $offsetX = (int) round(($boxWidth - $newWidth) / 2);
+        $offsetY = (int) round(($boxHeight - $newHeight) / 2);
+
+        $dst = imagecreatetruecolor($boxWidth, $boxHeight);
+
+        // Padding putih di sisa kanvas (bukan cuma latar transparansi PNG)
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefill($dst, 0, 0, $white);
+
+        imagecopyresampled($dst, $src, $offsetX, $offsetY, 0, 0, $newWidth, $newHeight, $width, $height);
+
+        $ok = imagejpeg($dst, $tujuan, $quality);
+
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        return $ok;
+    }
+
+    /**
+     * Menyusun baris data presensi (termasuk foto sebagai data URI) untuk laporan rekap pegawai (PDF).
+     */
+    private function buildRekapRows(array $data_presensi): array
+    {
         $rows = [];
         $nomor = 1;
         foreach ($data_presensi as $data) {
@@ -574,45 +818,11 @@ class Presensi extends BaseController
             ];
         }
 
-        $html = view('presensi/rekap_pdf', [
-            'data_pegawai'  => $data_pegawai,
-            'tanggal_awal'  => $tanggal_awal,
-            'tanggal_akhir' => $tanggal_akhir,
-            'rows'          => $rows,
-        ]);
-
-        $dompdf = new \Dompdf\Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
-        $dompdf->render();
-
-        $namaFile = 'Rekap Presensi_' . $data_pegawai->nama . '_'
-            . date('Y-m-d', strtotime($tanggal_awal)) . '_' . date('Y-m-d', strtotime($tanggal_akhir)) . '.pdf';
-        $dompdf->stream($namaFile, ['Attachment' => true]);
-        exit();
+        return $rows;
     }
 
     /**
-     * Membaca file foto presensi dan mengubahnya menjadi data URI base64
-     * agar bisa ditanam langsung di PDF (dompdf). Mengembalikan null bila file tidak ada.
-     */
-    private function fotoDataUri($jenis, $namafile)
-    {
-        if (empty($namafile) || $namafile === '-') {
-            return null;
-        }
-
-        $path = FCPATH . 'assets/img/foto_presensi/' . $jenis . '/' . $namafile;
-        if (! is_file($path)) {
-            return null;
-        }
-
-        $mime = function_exists('mime_content_type') ? (mime_content_type($path) ?: 'image/jpeg') : 'image/jpeg';
-        return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
-    }
-
-    /**
-     * Menyusun baris data presensi (termasuk foto sebagai data URI) untuk laporan PDF.
+     * Menyusun baris data presensi (termasuk foto sebagai data URI) untuk laporan harian/bulanan (PDF).
      */
     private function buildLaporanRows($data_presensi)
     {
@@ -655,22 +865,139 @@ class Presensi extends BaseController
                 'total_jam_kerja'     => $total_jam_kerja_format,
                 'total_keterlambatan' => $total_keterlambatan_format,
                 'keterangan'          => (! empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-',
-                'foto_masuk'          => $this->fotoDataUri('masuk', $data->foto_masuk),
-                'foto_keluar'         => $belum_keluar ? null : $this->fotoDataUri('keluar', $data->foto_keluar),
+                'foto_masuk'          => $this->fotoDataUriBox('masuk', $data->foto_masuk),
+                'foto_keluar'         => $belum_keluar ? null : $this->fotoDataUriBox('keluar', $data->foto_keluar),
             ];
         }
 
         return $rows;
     }
 
+    /**
+     * Generate PDF dari data presensi. Jika jumlah baris melebihi CHUNK_SIZE_PDF,
+     * data otomatis dipecah menjadi beberapa file PDF lalu digabung dalam satu ZIP,
+     * agar memory tidak membengkak akibat terlalu banyak foto (base64) diproses sekaligus.
+     *
+     * @param array    $data_presensi   Data mentah hasil query (belum diproses ke baris tampilan)
+     * @param callable $buildRowsFn     Fungsi untuk mengubah $data_presensi (atau potongannya) menjadi $rows siap-tampil.
+     *                                  Biasanya [$this, 'buildLaporanRows'] atau [$this, 'buildRekapRows'].
+     * @param string   $viewName        Nama view PDF, misal 'presensi/laporan_pdf'
+     * @param array    $viewDataExtra   Data tambahan untuk view selain 'rows', misal ['judul' => ..., 'meta' => ...]
+     * @param string   $namaFileDasar   Nama file (tanpa ekstensi) untuk PDF/ZIP yang dihasilkan
+     * @param string   $paperSize       Ukuran kertas dompdf, default 'A4'
+     * @param string   $orientation     Orientasi kertas dompdf, default 'landscape'
+     */
+    private function generatePdfChunked(
+        array $data_presensi,
+        callable $buildRowsFn,
+        string $viewName,
+        array $viewDataExtra,
+        string $namaFileDasar,
+        string $paperSize = 'A4',
+        string $orientation = 'landscape'
+    ) {
+        // TAMBAHAN: opsi dompdf supaya render lebih cepat
+        // - isRemoteEnabled dimatikan karena tidak ada resource remote yang perlu di-load
+        // - isFontSubsettingEnabled dimatikan karena subsetting font cukup mahal dan
+        //   tidak diperlukan untuk laporan internal seperti ini
+        $dompdfOptions = new \Dompdf\Options();
+        $dompdfOptions->set('isRemoteEnabled', false);
+        $dompdfOptions->set('isFontSubsettingEnabled', false);
+        $dompdfOptions->set('isHtml5ParserEnabled', true);
+
+        $chunks = array_chunk($data_presensi, self::CHUNK_SIZE_PDF);
+        $totalChunks = count($chunks);
+
+        // Kasus normal: data masih muat dalam 1 file PDF, generate seperti biasa.
+        if ($totalChunks <= 1) {
+            set_time_limit(300); // TAMBAHAN: reset timer sebelum render
+
+            $rows = $buildRowsFn($data_presensi);
+
+            $viewData = $viewDataExtra;
+            $viewData['rows'] = $rows;
+
+            $html = view($viewName, $viewData);
+
+            $dompdf = new \Dompdf\Dompdf($dompdfOptions);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper($paperSize, $orientation);
+            $dompdf->render();
+
+            $dompdf->stream($namaFileDasar . '.pdf', ['Attachment' => true]);
+            exit();
+        }
+
+        // Kasus data banyak: pecah jadi beberapa PDF, lalu gabungkan ke dalam satu ZIP.
+        $tempDir = WRITEPATH . 'uploads/temp_pdf_' . uniqid() . '/';
+        mkdir($tempDir, 0755, true);
+
+        foreach ($chunks as $i => $chunk) {
+            set_time_limit(300); // TAMBAHAN: reset timer di SETIAP chunk (bukan cuma sekali di awal),
+            // supaya tiap bagian dapat jatah waktu penuh sendiri
+
+            $bagianKe = $i + 1;
+
+            $rows = $buildRowsFn($chunk);
+
+            $viewData = $viewDataExtra;
+            if (isset($viewData['judul'])) {
+                $viewData['judul'] = $viewData['judul'] . " (Bagian {$bagianKe} dari {$totalChunks})";
+            }
+            $viewData['bagian_ke'] = $bagianKe;
+            $viewData['total_bagian'] = $totalChunks;
+            $viewData['rows'] = $rows;
+
+            $html = view($viewName, $viewData);
+
+            $dompdf = new \Dompdf\Dompdf($dompdfOptions);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper($paperSize, $orientation);
+            $dompdf->render();
+
+            file_put_contents($tempDir . $namaFileDasar . "_bagian-{$bagianKe}.pdf", $dompdf->output());
+
+            // Bersihkan memory sebelum lanjut ke chunk berikutnya
+            unset($dompdf, $html, $rows, $viewData);
+            gc_collect_cycles();
+        }
+
+        // Gabungkan semua bagian PDF ke dalam satu file ZIP
+        $zipNamaFile = $namaFileDasar . '.zip';
+        $zipPath = WRITEPATH . 'uploads/' . $zipNamaFile;
+
+        $zip = new \ZipArchive();
+        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        foreach (glob($tempDir . '*.pdf') as $file) {
+            $zip->addFile($file, basename($file));
+        }
+        $zip->close();
+
+        // Bersihkan file PDF sementara & foldernya
+        foreach (glob($tempDir . '*.pdf') as $file) {
+            unlink($file);
+        }
+        rmdir($tempDir);
+
+        // Hapus file ZIP setelah selesai dikirim ke browser
+        register_shutdown_function(function () use ($zipPath) {
+            if (is_file($zipPath)) {
+                unlink($zipPath);
+            }
+        });
+
+        return $this->response->download($zipPath, null)->setFileName($zipNamaFile);
+    }
+
     public function laporanHarianPdf()
     {
-        ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300); // TAMBAHAN
 
-        $tanggal = $this->request->getPost('tanggal');
-        if (empty($tanggal)) {
-            $tanggal = date('Y-m-d');
-        }
+        [$tanggal_dari, $tanggal_sampai] = $this->resolveRentangTanggal(
+            $this->request->getPost('tanggal_dari'),
+            $this->request->getPost('tanggal_sampai')
+        );
         $nama           = trim((string) $this->request->getPost('nama'));
         $filter_jabatan = trim((string) $this->request->getPost('filter_jabatan'));
         $post_unit = $this->request->getPost('id_unit');
@@ -678,29 +1005,31 @@ class Presensi extends BaseController
             ? (int) $post_unit
             : current_unit_id();
 
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama, $filter_jabatan)['laporan-harian'];
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal_dari, $tanggal_sampai, true, 10, $id_unit, $nama, $filter_jabatan)['laporan-harian'];
 
-        $html = view('presensi/laporan_pdf', [
-            'judul' => 'Laporan Presensi Harian',
-            'meta'  => [
-                'Tanggal' => date('d F Y', strtotime($tanggal)),
+        $namaFileTanggal = ($tanggal_dari === $tanggal_sampai)
+            ? date('Y-m-d', strtotime($tanggal_dari))
+            : date('Y-m-d', strtotime($tanggal_dari)) . '_' . date('Y-m-d', strtotime($tanggal_sampai));
+        $namaFileDasar = 'Laporan Presensi Harian_' . $namaFileTanggal;
+
+        return $this->generatePdfChunked(
+            $data_presensi,
+            [$this, 'buildLaporanRows'],
+            'presensi/laporan_pdf',
+            [
+                'judul' => 'Laporan Presensi Harian',
+                'meta'  => [
+                    'Tanggal' => $this->formatRentangTanggal($tanggal_dari, $tanggal_sampai),
+                ],
             ],
-            'rows'  => $this->buildLaporanRows($data_presensi),
-        ]);
-
-        $dompdf = new \Dompdf\Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
-        $dompdf->render();
-
-        $namaFile = 'Laporan Presensi Harian_' . date('Y-m-d', strtotime($tanggal)) . '.pdf';
-        $dompdf->stream($namaFile, ['Attachment' => true]);
-        exit();
+            $namaFileDasar
+        );
     }
 
     public function laporanBulananPdf()
     {
-        ini_set('memory_limit', '512M');
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300); // TAMBAHAN
 
         $filter_bulan = $this->request->getPost('filter_bulan');
         $filter_tahun = $this->request->getPost('filter_tahun');
@@ -719,24 +1048,22 @@ class Presensi extends BaseController
 
         $data_presensi = $this->presensiModel->getDataPresensiBulanan($filter_bulan, $filter_tahun, true, 10, $id_unit_pdf, $nama, $filter_jabatan)['laporan-bulanan'];
 
-        $html = view('presensi/laporan_pdf', [
-            'judul' => 'Laporan Presensi Bulanan',
-            'meta'  => [
-                'Bulan' => date('F', mktime(0, 0, 0, (int) $filter_bulan, 1)),
-                'Tahun' => $filter_tahun,
+        $namaFileDasar = 'Laporan Presensi Bulanan_'
+            . date('F-Y', mktime(0, 0, 0, (int) $filter_bulan, 1, (int) $filter_tahun));
+
+        return $this->generatePdfChunked(
+            $data_presensi,
+            [$this, 'buildLaporanRows'],
+            'presensi/laporan_pdf',
+            [
+                'judul' => 'Laporan Presensi Bulanan',
+                'meta'  => [
+                    'Bulan' => date('F', mktime(0, 0, 0, (int) $filter_bulan, 1)),
+                    'Tahun' => $filter_tahun,
+                ],
             ],
-            'rows'  => $this->buildLaporanRows($data_presensi),
-        ]);
-
-        $dompdf = new \Dompdf\Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
-        $dompdf->render();
-
-        $namaFile = 'Laporan Presensi Bulanan_'
-            . date('F-Y', mktime(0, 0, 0, (int) $filter_bulan, 1, (int) $filter_tahun)) . '.pdf';
-        $dompdf->stream($namaFile, ['Attachment' => true]);
-        exit();
+            $namaFileDasar
+        );
     }
 
     public function laporanHarian()
@@ -745,10 +1072,10 @@ class Presensi extends BaseController
 
         $user_profile = $this->usersModel->getUserInfo(user_id());
 
-        $tanggal = $this->request->getGet('tanggal');
-        if (empty($tanggal)) {
-            $tanggal = date('Y-m-d');
-        }
+        [$tanggal_dari, $tanggal_sampai] = $this->resolveRentangTanggal(
+            $this->request->getGet('tanggal_dari'),
+            $this->request->getGet('tanggal_sampai')
+        );
         $nama           = trim((string) $this->request->getGet('nama'));
         $filter_jabatan = trim((string) $this->request->getGet('filter_jabatan'));
         $per_page       = (int) $this->request->getGet('per_page');
@@ -762,8 +1089,8 @@ class Presensi extends BaseController
             ? (int) $filter_unit
             : current_unit_id();
 
-        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, false, $per_page, $id_unit, $nama, $filter_jabatan);
-        $data_tanggal = date('d F Y', strtotime($tanggal));
+        $data_presensi_pegawai = $this->presensiModel->getDataPresensiHarian($tanggal_dari, $tanggal_sampai, false, $per_page, $id_unit, $nama, $filter_jabatan);
+        $data_tanggal = $this->formatRentangTanggal($tanggal_dari, $tanggal_sampai);
 
         $data_presensi = $data_presensi_pegawai['laporan-harian'];
         $pager = $data_presensi_pegawai['links'];
@@ -779,7 +1106,8 @@ class Presensi extends BaseController
             'pager'          => $pager,
             'total'          => $total,
             'perPage'        => $perPage,
-            'tanggal'        => $tanggal,
+            'tanggal_dari'   => $tanggal_dari,
+            'tanggal_sampai' => $tanggal_sampai,
             'nama'           => $nama,
             'daftar_unit'    => $this->unitModel->findAll(),
             'filter_unit'    => $filter_unit ?? '',
@@ -791,26 +1119,70 @@ class Presensi extends BaseController
         return view('presensi/laporan_presensi_harian', $data);
     }
 
+    /**
+     * Resolve rentang tanggal filter (dari & sampai) untuk laporan harian.
+     * Default ke hari ini bila kedua-duanya kosong; saling melengkapi bila
+     * hanya salah satu diisi; ditukar bila urutannya terbalik.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function resolveRentangTanggal(?string $tanggal_dari, ?string $tanggal_sampai): array
+    {
+        $tanggal_dari = trim((string) $tanggal_dari);
+        $tanggal_sampai = trim((string) $tanggal_sampai);
+
+        if ($tanggal_dari === '' && $tanggal_sampai === '') {
+            $hariIni = date('Y-m-d');
+            return [$hariIni, $hariIni];
+        }
+
+        if ($tanggal_dari === '') {
+            $tanggal_dari = $tanggal_sampai;
+        }
+        if ($tanggal_sampai === '') {
+            $tanggal_sampai = $tanggal_dari;
+        }
+
+        if ($tanggal_dari > $tanggal_sampai) {
+            [$tanggal_dari, $tanggal_sampai] = [$tanggal_sampai, $tanggal_dari];
+        }
+
+        return [$tanggal_dari, $tanggal_sampai];
+    }
+
+    /**
+     * Format rentang tanggal untuk ditampilkan: tanggal tunggal bila dari == sampai,
+     * atau "dari - sampai" bila berupa rentang.
+     */
+    private function formatRentangTanggal(string $tanggal_dari, string $tanggal_sampai): string
+    {
+        if ($tanggal_dari === $tanggal_sampai) {
+            return date('d F Y', strtotime($tanggal_dari));
+        }
+
+        return date('d F Y', strtotime($tanggal_dari)) . ' - ' . date('d F Y', strtotime($tanggal_sampai));
+    }
+
     public function laporanHarianExcel()
     {
-        $tanggal = $this->request->getPOST('tanggal');
-        if (empty($tanggal)) {
-            $tanggal = date('Y-m-d');
-        }
+        [$tanggal_dari, $tanggal_sampai] = $this->resolveRentangTanggal(
+            $this->request->getPost('tanggal_dari'),
+            $this->request->getPost('tanggal_sampai')
+        );
         $nama           = trim((string) $this->request->getPost('nama'));
         $filter_jabatan = trim((string) $this->request->getPost('filter_jabatan'));
         $post_unit = $this->request->getPost('id_unit');
         $id_unit = (in_groups('head') && $post_unit !== null && $post_unit !== '')
             ? (int) $post_unit
             : current_unit_id();
-        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal, $tanggal, true, 10, $id_unit, $nama, $filter_jabatan)['laporan-harian'];
+        $data_presensi = $this->presensiModel->getDataPresensiHarian($tanggal_dari, $tanggal_sampai, true, 10, $id_unit, $nama, $filter_jabatan)['laporan-harian'];
 
         $spreadsheet = new Spreadsheet();
         $worksheet = $spreadsheet->getActiveSheet();
 
         $worksheet->setCellValue('A1', 'Laporan Presensi Harian');
         $worksheet->setCellValue('A3', 'Tanggal');
-        $worksheet->setCellValue('C3', $tanggal);
+        $worksheet->setCellValue('C3', $this->formatRentangTanggal($tanggal_dari, $tanggal_sampai));
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NAMA TPM');
         $worksheet->setCellValue('C6', 'UNIT OPERASIONAL');
@@ -903,7 +1275,10 @@ class Presensi extends BaseController
         $worksheet->getStyle('C3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="Laporan Presensi Harian_' . date('Y-m-d', strtotime($tanggal)) . '.xlsx"');
+        $namaFileTanggal = ($tanggal_dari === $tanggal_sampai)
+            ? date('Y-m-d', strtotime($tanggal_dari))
+            : date('Y-m-d', strtotime($tanggal_dari)) . '_' . date('Y-m-d', strtotime($tanggal_sampai));
+        header('Content-Disposition: attachment;filename="Laporan Presensi Harian_' . $namaFileTanggal . '.xlsx"');
         header('Cache-Control: max-age=0');
 
         $writer = new Xlsx($spreadsheet);

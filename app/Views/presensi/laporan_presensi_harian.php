@@ -11,8 +11,12 @@
                         <form method="get">
                             <div class="row align-items-end g-1">
                                 <div class="col">
-                                    <label for="tanggal" class="form-label">Tanggal</label>
-                                    <input type="date" name="tanggal" id="tanggal" class="form-control" value="<?= $tanggal ?>">
+                                    <label for="tanggal_dari" class="form-label">Dari Tanggal </label>
+                                    <input type="date" name="tanggal_dari" id="tanggal_dari" class="form-control" value="<?= $tanggal_dari ?>">
+                                </div>
+                                <div class="col">
+                                    <label for="tanggal_sampai" class="form-label">Sampai Tanggal</label>
+                                    <input type="date" name="tanggal_sampai" id="tanggal_sampai" class="form-control" value="<?= $tanggal_sampai ?>">
                                 </div>
                                 <div class="col">
                                     <label for="nama" class="form-label">Nama / NIP</label>
@@ -38,7 +42,7 @@
                                     </select>
                                 </div>
                                 <?php endif; ?>
-                                <?php if ($nama !== '' || $filter_unit !== '' || $filter_jabatan !== '' || $per_page != 10 || $tanggal !== date('Y-m-d')) : ?>
+                                <?php if ($nama !== '' || $filter_unit !== '' || $filter_jabatan !== '' || $per_page != 10 || $tanggal_dari !== date('Y-m-d') || $tanggal_sampai !== date('Y-m-d')) : ?>
                                 <div class="col-auto align-self-end">
                                     <a href="<?= base_url('laporan-presensi-harian') ?>" class="btn btn-outline-secondary">Reset</a>
                                 </div>
@@ -49,7 +53,8 @@
                     <div class="col-lg-4 col-md-12 text-start text-lg-end">
                         <form id="exportForm" method="POST" action="<?= base_url('/laporan-presensi-harian/excel') ?>" class="d-inline">
                             <?= csrf_field() ?>
-                            <input type="hidden" name="tanggal" value="<?= $tanggal ?>">
+                            <input type="hidden" name="tanggal_dari" value="<?= $tanggal_dari ?>">
+                            <input type="hidden" name="tanggal_sampai" value="<?= $tanggal_sampai ?>">
                             <input type="hidden" name="nama" id="exportNama" value="<?= esc($nama) ?>">
                             <input type="hidden" name="id_unit" id="exportIdUnit" value="<?= esc($filter_unit) ?>">
                             <input type="hidden" name="filter_jabatan" id="exportJabatan" value="<?= esc($filter_jabatan) ?>">
@@ -283,7 +288,11 @@
     (function() {
         var filterForm = document.querySelector('form[method="get"]');
 
-        document.getElementById('tanggal').addEventListener('change', function() {
+        document.getElementById('tanggal_dari').addEventListener('change', function() {
+            filterForm.submit();
+        });
+
+        document.getElementById('tanggal_sampai').addEventListener('change', function() {
             filterForm.submit();
         });
 
@@ -310,7 +319,8 @@
         });
 
         document.getElementById('exportForm').addEventListener('submit', function() {
-            this.querySelector('[name="tanggal"]').value = document.getElementById('tanggal').value;
+            this.querySelector('[name="tanggal_dari"]').value = document.getElementById('tanggal_dari').value;
+            this.querySelector('[name="tanggal_sampai"]').value = document.getElementById('tanggal_sampai').value;
             this.querySelector('[name="nama"]').value = document.getElementById('nama').value;
             this.querySelector('[name="filter_jabatan"]').value = document.getElementById('filter_jabatan').value;
             if (unitEl) this.querySelector('[name="id_unit"]').value = unitEl.value;

@@ -104,9 +104,10 @@ class PresensiModel extends Model
         $tanggal_sekarang = date('Y-m-d');
 
         if ($tanggal_dari || $tanggal_sampai) {
-            $this->builder->where('presensi.tanggal_masuk BETWEEN ' . "'" . $tanggal_dari . "'" . ' AND ' . "'" . $tanggal_sampai . "'");
+            $this->builder->where('presensi.tanggal_masuk >=', $tanggal_dari);
+            $this->builder->where('presensi.tanggal_masuk <=', $tanggal_sampai);
         } else {
-            $this->builder->where('presensi.tanggal_masuk = ' . "'" . $tanggal_sekarang . "'");
+            $this->builder->where('presensi.tanggal_masuk', $tanggal_sekarang);
         }
 
         if (!empty($nama)) {
