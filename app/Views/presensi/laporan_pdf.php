@@ -49,12 +49,6 @@
             text-align: left;
         }
 
-        th.sub {
-            font-style: italic;
-            font-weight: normal;
-            font-size: 8px;
-        }
-
         img.foto {
             width: 4cm;
             height: 6cm;
@@ -76,17 +70,13 @@
     <table class="data">
         <thead>
             <tr>
-                <th rowspan="2">No</th>
-                <th rowspan="2">Nama TPM</th>
-                <th rowspan="2">Unit Operasional</th>
-                <th rowspan="2">Jabatan</th>
-                <th rowspan="2">Tanggal</th>
+                <th>No</th>
+                <th>Nama TPM</th>
+                <th>Unit Operasional</th>
+                <th>Jabatan</th>
+                <th>Tanggal</th>
                 <th>Foto Masuk</th>
                 <th>Foto Keluar</th>
-            </tr>
-            <tr>
-                <th class="sub">Ukuran Foto 4 x 6</th>
-                <th class="sub">Ukuran Foto 4 x 6</th>
             </tr>
         </thead>
         <tbody>
