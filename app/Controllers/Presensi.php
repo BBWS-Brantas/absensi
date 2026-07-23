@@ -1185,18 +1185,19 @@ class Presensi extends BaseController
         $worksheet->setCellValue('C3', $this->formatRentangTanggal($tanggal_dari, $tanggal_sampai));
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NAMA TPM');
-        $worksheet->setCellValue('C6', 'UNIT OPERASIONAL');
-        $worksheet->setCellValue('D6', 'JABATAN');
-        $worksheet->setCellValue('E6', 'TANGGAL');
-        $worksheet->setCellValue('F6', 'JAM MASUK');
-        $worksheet->setCellValue('G6', 'KOORDINAT MASUK');
-        $worksheet->setCellValue('H6', 'JAM PULANG');
-        $worksheet->setCellValue('I6', 'KOORDINAT PULANG');
-        $worksheet->setCellValue('J6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('K6', 'TOTAL KETERLAMBATAN');
-        $worksheet->setCellValue('L6', 'KETERANGAN KEGIATAN');
+        $worksheet->setCellValue('C6', 'USERNAME');
+        $worksheet->setCellValue('D6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('E6', 'JABATAN');
+        $worksheet->setCellValue('F6', 'TANGGAL');
+        $worksheet->setCellValue('G6', 'JAM MASUK');
+        $worksheet->setCellValue('H6', 'KOORDINAT MASUK');
+        $worksheet->setCellValue('I6', 'JAM PULANG');
+        $worksheet->setCellValue('J6', 'KOORDINAT PULANG');
+        $worksheet->setCellValue('K6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('L6', 'TOTAL KETERLAMBATAN');
+        $worksheet->setCellValue('M6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:L1');
+        $worksheet->mergeCells('A1:M1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -1240,33 +1241,34 @@ class Presensi extends BaseController
 
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
                 $worksheet->setCellValue('B' . $data_start_row, $data->nama);
-                $worksheet->setCellValue('C' . $data_start_row, $data->nama_unit ?? '-');
-                $worksheet->setCellValue('D' . $data_start_row, $data->jabatan ?? '-');
-                $worksheet->setCellValue('E' . $data_start_row, date('d F Y', strtotime($data->tanggal_masuk)));
-                $worksheet->setCellValue('F' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('G' . $data_start_row, $koordinat_masuk);
-                $worksheet->setCellValue('H' . $data_start_row, $belum_keluar ? '-' : $data->jam_keluar);
-                $worksheet->setCellValue('I' . $data_start_row, $koordinat_keluar);
-                $worksheet->setCellValue('J' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('K' . $data_start_row, $total_jam_keterlambatan_format);
-                $worksheet->setCellValue('L' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
+                $worksheet->setCellValue('C' . $data_start_row, $data->username ?? '-');
+                $worksheet->setCellValue('D' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('E' . $data_start_row, $data->jabatan ?? '-');
+                $worksheet->setCellValue('F' . $data_start_row, date('d F Y', strtotime($data->tanggal_masuk)));
+                $worksheet->setCellValue('G' . $data_start_row, $data->jam_masuk);
+                $worksheet->setCellValue('H' . $data_start_row, $koordinat_masuk);
+                $worksheet->setCellValue('I' . $data_start_row, $belum_keluar ? '-' : $data->jam_keluar);
+                $worksheet->setCellValue('J' . $data_start_row, $koordinat_keluar);
+                $worksheet->setCellValue('K' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('L' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('M' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':M' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':L' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':M' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':M' . $data_start_row)->applyFromArray($styleArray);
         }
 
-        foreach (['A','B','C','D','E','F','G','H','I','J','K','L'] as $col) {
+        foreach (['A','B','C','D','E','F','G','H','I','J','K','L','M'] as $col) {
             $worksheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         $worksheet->getStyle('A3:C3')->applyFromArray($styleArray);
-        $worksheet->getStyle('A6:L6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:M6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
@@ -1471,18 +1473,19 @@ class Presensi extends BaseController
         $worksheet->setCellValue('C4', $filter_tahun);
         $worksheet->setCellValue('A6', '#');
         $worksheet->setCellValue('B6', 'NAMA TPM');
-        $worksheet->setCellValue('C6', 'UNIT OPERASIONAL');
-        $worksheet->setCellValue('D6', 'JABATAN');
-        $worksheet->setCellValue('E6', 'TANGGAL');
-        $worksheet->setCellValue('F6', 'JAM MASUK');
-        $worksheet->setCellValue('G6', 'KOORDINAT MASUK');
-        $worksheet->setCellValue('H6', 'JAM PULANG');
-        $worksheet->setCellValue('I6', 'KOORDINAT PULANG');
-        $worksheet->setCellValue('J6', 'TOTAL JAM KERJA');
-        $worksheet->setCellValue('K6', 'TOTAL KETERLAMBATAN');
-        $worksheet->setCellValue('L6', 'KETERANGAN KEGIATAN');
+        $worksheet->setCellValue('C6', 'USERNAME');
+        $worksheet->setCellValue('D6', 'UNIT OPERASIONAL');
+        $worksheet->setCellValue('E6', 'JABATAN');
+        $worksheet->setCellValue('F6', 'TANGGAL');
+        $worksheet->setCellValue('G6', 'JAM MASUK');
+        $worksheet->setCellValue('H6', 'KOORDINAT MASUK');
+        $worksheet->setCellValue('I6', 'JAM PULANG');
+        $worksheet->setCellValue('J6', 'KOORDINAT PULANG');
+        $worksheet->setCellValue('K6', 'TOTAL JAM KERJA');
+        $worksheet->setCellValue('L6', 'TOTAL KETERLAMBATAN');
+        $worksheet->setCellValue('M6', 'KETERANGAN KEGIATAN');
 
-        $worksheet->mergeCells('A1:L1');
+        $worksheet->mergeCells('A1:M1');
         $worksheet->mergeCells('A3:B3');
         $worksheet->mergeCells('A4:B4');
 
@@ -1526,35 +1529,36 @@ class Presensi extends BaseController
 
                 $worksheet->setCellValue('A' . $data_start_row, $nomor++);
                 $worksheet->setCellValue('B' . $data_start_row, $data->nama);
-                $worksheet->setCellValue('C' . $data_start_row, $data->nama_unit ?? '-');
-                $worksheet->setCellValue('D' . $data_start_row, $data->jabatan ?? '-');
-                $worksheet->setCellValue('E' . $data_start_row, date('d F Y', strtotime($data->tanggal_masuk)));
-                $worksheet->setCellValue('F' . $data_start_row, $data->jam_masuk);
-                $worksheet->setCellValue('G' . $data_start_row, $koordinat_masuk);
-                $worksheet->setCellValue('H' . $data_start_row, $belum_keluar ? '-' : $data->jam_keluar);
-                $worksheet->setCellValue('I' . $data_start_row, $koordinat_keluar);
-                $worksheet->setCellValue('J' . $data_start_row, $total_jam_kerja_format);
-                $worksheet->setCellValue('K' . $data_start_row, $total_jam_keterlambatan_format);
-                $worksheet->setCellValue('L' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
+                $worksheet->setCellValue('C' . $data_start_row, $data->username ?? '-');
+                $worksheet->setCellValue('D' . $data_start_row, $data->nama_unit ?? '-');
+                $worksheet->setCellValue('E' . $data_start_row, $data->jabatan ?? '-');
+                $worksheet->setCellValue('F' . $data_start_row, date('d F Y', strtotime($data->tanggal_masuk)));
+                $worksheet->setCellValue('G' . $data_start_row, $data->jam_masuk);
+                $worksheet->setCellValue('H' . $data_start_row, $koordinat_masuk);
+                $worksheet->setCellValue('I' . $data_start_row, $belum_keluar ? '-' : $data->jam_keluar);
+                $worksheet->setCellValue('J' . $data_start_row, $koordinat_keluar);
+                $worksheet->setCellValue('K' . $data_start_row, $total_jam_kerja_format);
+                $worksheet->setCellValue('L' . $data_start_row, $total_jam_keterlambatan_format);
+                $worksheet->setCellValue('M' . $data_start_row, (!empty($data->keterangan) && $data->keterangan !== '-') ? $data->keterangan : '-');
 
-                $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
+                $worksheet->getStyle('A' . $data_start_row - 1 . ':M' . $data_start_row)->applyFromArray($styleArray);
 
                 $data_start_row++;
             }
         } else {
             $worksheet->setCellValue('A' . $data_start_row, 'Tidak Ada Data');
-            $worksheet->mergeCells('A' . $data_start_row . ':L' . $data_start_row);
-            $worksheet->getStyle('A' . $data_start_row - 1 . ':L' . $data_start_row)->applyFromArray($styleArray);
+            $worksheet->mergeCells('A' . $data_start_row . ':M' . $data_start_row);
+            $worksheet->getStyle('A' . $data_start_row - 1 . ':M' . $data_start_row)->applyFromArray($styleArray);
         }
 
-        foreach (['A','B','C','D','E','F','G','H','I','J','K','L'] as $col) {
+        foreach (['A','B','C','D','E','F','G','H','I','J','K','L','M'] as $col) {
             $worksheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         $worksheet->getStyle('A3:C4')->applyFromArray($styleArray);
         $worksheet->getStyle('A3:A6')->getFont()->setBold(true);
-        $worksheet->getStyle('A6:L6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $worksheet->getStyle('A6:L6')->getFont()->setBold(true);
+        $worksheet->getStyle('A6:M6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $worksheet->getStyle('A6:M6')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getFont()->setBold(true);
         $worksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $worksheet->getStyle('A1')->getFill()
